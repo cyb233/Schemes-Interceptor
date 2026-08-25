@@ -140,7 +140,7 @@ gradle installDebug
 
 1. checkout 源码；
 2. 配置 JDK 17；
-3. 配置 Gradle 8.10.2；
+3. 配置 Gradle 9.5.0；
 4. 执行 `gradle build`；
 5. 上传 `app/build/outputs/apk/**/*.apk` 作为 artifact。
 

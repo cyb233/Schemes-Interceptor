@@ -1,0 +1,101 @@
+import groovy.json.JsonSlurper
+import java.util.Locale
+
+/**
+ * Builds a manifest from the checked-in template and schemes.json.  Android
+ * manifest placeholders replace attribute values only, so the two markers in
+ * the template are expanded here before Android's manifest-merger runs.
+ */
+def schemesJson = file("$projectDir/src/main/assets/schemes.json")
+def manifestTemplate = file("$projectDir/src/main/AndroidManifest.xml")
+def generatedManifest = layout.buildDirectory.file('generated/scheme-manifest/AndroidManifest.xml')
+
+def xmlEscape = { String value ->
+    value.replace('&', '&amp;')
+            .replace('<', '&lt;')
+            .replace('>', '&gt;')
+            .replace('"', '&quot;')
+            .replace("'", '&apos;')
+}
+
+def aliasNameFor = { String scheme ->
+    "SchemeAlias_${scheme.replaceAll(/[^A-Za-z0-9_]/, '_')}_${Integer.toUnsignedString(scheme.hashCode(), 16)}"
+}
+
+def generateSchemeManifest = tasks.register('generateSchemeManifest') {
+    inputs.files(schemesJson, manifestTemplate)
+    outputs.file(generatedManifest)
+
+    doLast {
+        def parsed = new JsonSlurper().parse(schemesJson)
+        if (!(parsed instanceof List)) {
+            throw new GradleException('schemes.json must contain a JSON array.')
+        }
+
+        // A LinkedHashMap retains the first occurrence of each scheme while
+        // a LinkedHashSet removes repeated descriptions before joining them.
+        def grouped = new LinkedHashMap<String, LinkedHashSet<String>>()
+        parsed.eachWithIndex { item, index ->
+            if (!(item instanceof Map) || !(item.scheme instanceof String)) {
+                throw new GradleException("schemes.json entry #${index} must have a string scheme.")
+            }
+            def scheme = item.scheme.trim()
+            if (!(scheme ==~ /[A-Za-z][A-Za-z0-9+.-]*/)) {
+                throw new GradleException("Invalid URL scheme at entry #${index}: ${scheme}")
+            }
+            // Descriptions are resolved at runtime for the device locale.  The
+            // build only validates a provided desc field's supported shapes.
+            if (item.containsKey('desc')
+                    && !(item.desc instanceof String)
+                    && !(item.desc instanceof Map)) {
+                throw new GradleException("schemes.json entry #${index} desc must be a string or object.")
+            }
+            grouped.computeIfAbsent(scheme) { new LinkedHashSet<String>() }
+        }
+
+        def aliases = grouped.keySet().sort { a, b -> a.compareToIgnoreCase(b) }.collect { scheme ->
+            def escapedScheme = xmlEscape(scheme)
+            """        <activity-alias
+            android:name=\".${aliasNameFor(scheme)}\"
+            android:targetActivity=\".BlankActivity\"
+            android:exported=\"true\"
+            android:enabled=\"true\">
+            <intent-filter>
+                <action android:name=\"android.intent.action.VIEW\" />
+                <category android:name=\"android.intent.category.DEFAULT\" />
+                <category android:name=\"android.intent.category.BROWSABLE\" />
+                <data android:scheme=\"${escapedScheme}\" />
+            </intent-filter>
+        </activity-alias>"""
+        }.join('\n\n')
+
+        // Package visibility is restricted on Android 11+.  Giving each
+        // scheme a queries intent lets SchemeManager discover other handlers.
+        def queries = grouped.keySet().sort { a, b -> a.compareToIgnoreCase(b) }.collect { scheme ->
+            """        <intent>
+            <action android:name=\"android.intent.action.VIEW\" />
+            <data android:scheme=\"${xmlEscape(scheme)}\" />
+        </intent>"""
+        }.join('\n\n')
+
+        def template = manifestTemplate.getText('UTF-8')
+        if (!template.contains('<!-- SCHEME_QUERIES -->') || !template.contains('<!-- SCHEME_ALIASES -->')) {
+            throw new GradleException('AndroidManifest.xml must contain SCHEME_QUERIES and SCHEME_ALIASES markers.')
+        }
+
+        def output = template
+                .replace('<!-- SCHEME_QUERIES -->', queries)
+                .replace('<!-- SCHEME_ALIASES -->', aliases)
+        def destination = generatedManifest.get().asFile
+        destination.parentFile.mkdirs()
+        destination.setText(output, 'UTF-8')
+    }
+}
+
+android.sourceSets.main.manifest.srcFile(generatedManifest.get().asFile)
+
+tasks.configureEach { task ->
+    if (task.name ==~ /process.+MainManifest/) {
+        task.dependsOn(generateSchemeManifest)
+    }
+}

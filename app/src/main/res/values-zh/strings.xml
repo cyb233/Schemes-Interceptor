@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Scheme 拦截器</string>
+    <string name="search_hint">搜索 Scheme 或描述</string>
+    <string name="show_installed_only">只显示已安装应用</string>
+    <string name="about">关于</string>
+    <string name="about_message">首页：\nGitHub：</string>
+    <string name="installed_apps">已安装：%1$s</string>
+    <string name="scheme_description_with_apps">%1$s · %2$s</string>
+    <string name="enabled">启用 %1$s</string>
+    <string name="no_schemes">没有符合条件的 Scheme</string>
+</resources>

@@ -1,0 +1,7 @@
+[
+  {"scheme": "mqq", "desc": {"zh-CN": "QQ", "en": "QQ"}},
+  {"scheme": "mqq", "desc": {"zh-CN": "TIM", "en": "TIM"}},
+  {"scheme": "weixin", "desc": {"zh-CN": "微信", "en": "WeChat"}},
+  {"scheme": "alipays", "desc": {"zh-CN": "支付宝", "en": "Alipay"}},
+  {"scheme": "taobao", "desc": "淘宝"}
+]

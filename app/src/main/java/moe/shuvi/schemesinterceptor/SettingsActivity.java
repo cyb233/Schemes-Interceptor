@@ -3,12 +3,16 @@ package moe.shuvi.schemesinterceptor;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -33,6 +37,19 @@ public final class SettingsActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
+
+        View appBarContainer = findViewById(R.id.app_bar_container);
+        ViewCompat.setOnApplyWindowInsetsListener(appBarContainer, (view, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            view.setPadding(
+                    view.getPaddingLeft(),
+                    systemBars.top,
+                    view.getPaddingRight(),
+                    view.getPaddingBottom()
+            );
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(appBarContainer);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);

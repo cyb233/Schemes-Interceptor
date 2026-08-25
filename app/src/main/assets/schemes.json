@@ -1,7 +1,16 @@
 [
-  {"scheme": "mqq", "desc": {"zh-CN": "QQ", "en": "QQ"}},
-  {"scheme": "mqq", "desc": {"zh-CN": "TIM", "en": "TIM"}},
-  {"scheme": "weixin", "desc": {"zh-CN": "微信", "en": "WeChat"}},
-  {"scheme": "alipays", "desc": {"zh-CN": "支付宝", "en": "Alipay"}},
-  {"scheme": "taobao", "desc": "淘宝"}
+  { "scheme": "http", "desc": { "zh-CN": "HTTP", "en": "HTTP" } },
+  { "scheme": "https", "desc": { "zh-CN": "HTTPS", "en": "HTTPS" } },
+  { "scheme": "ftp", "desc": { "zh-CN": "FTP", "en": "FTP" } },
+  { "scheme": "file", "desc": { "zh-CN": "文件", "en": "File" } },
+  { "scheme": "sms", "desc": { "zh-CN": "短信", "en": "SMS" } },
+  { "scheme": "mailto", "desc": { "zh-CN": "邮箱", "en": "Email" } },
+  { "scheme": "tel", "desc": { "zh-CN": "电话", "en": "Phone" } },
+  { "scheme": "mqq", "desc": { "zh-CN": "QQ", "en": "QQ" } },
+  { "scheme": "mqqapi", "desc": { "zh-CN": "QQ", "en": "QQ" } },
+  { "scheme": "mqq", "desc": { "zh-CN": "TIM", "en": "TIM" } },
+  { "scheme": "mqqapi", "desc": { "zh-CN": "TIM", "en": "TIM" } },
+  { "scheme": "weixin", "desc": { "zh-CN": "微信", "en": "WeChat" } },
+  { "scheme": "alipays", "desc": { "zh-CN": "支付宝", "en": "Alipay" } },
+  { "scheme": "taobao", "desc": { "zh-CN": "淘宝", "en": "Taobao" } }
 ]

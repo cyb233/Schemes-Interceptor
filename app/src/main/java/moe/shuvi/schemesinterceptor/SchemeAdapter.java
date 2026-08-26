@@ -18,11 +18,20 @@ public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.View
         void onEnabledChanged(@NonNull SchemeManager.SchemeEntry entry, boolean enabled);
     }
 
-    private final List<SchemeManager.SchemeEntry> entries = new ArrayList<>();
-    private final OnEnabledChangedListener listener;
+    public interface OnClearDefaultListener {
+        void onClearDefault(@NonNull SchemeManager.SchemeEntry entry);
+    }
 
-    public SchemeAdapter(@NonNull OnEnabledChangedListener listener) {
-        this.listener = listener;
+    private final List<SchemeManager.SchemeEntry> entries = new ArrayList<>();
+    private final OnEnabledChangedListener enabledChangedListener;
+    private final OnClearDefaultListener clearDefaultListener;
+
+    public SchemeAdapter(
+            @NonNull OnEnabledChangedListener enabledChangedListener,
+            @NonNull OnClearDefaultListener clearDefaultListener
+    ) {
+        this.enabledChangedListener = enabledChangedListener;
+        this.clearDefaultListener = clearDefaultListener;
         setHasStableIds(true);
     }
 
@@ -54,6 +63,13 @@ public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.View
                 ? View.GONE
                 : View.VISIBLE);
 
+        holder.clearDefault.setVisibility(entry.getDefaultHandlerPackage().isEmpty()
+                ? View.GONE
+                : View.VISIBLE);
+        holder.clearDefault.setOnClickListener(entry.getDefaultHandlerPackage().isEmpty()
+                ? null
+                : view -> clearDefaultListener.onClearDefault(entry));
+
         // Detach before changing checked state: RecyclerView reuses views and
         // setChecked() would otherwise persist an unintended component state.
         holder.enabled.setOnCheckedChangeListener(null);
@@ -62,7 +78,8 @@ public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.View
                 R.string.enabled,
                 entry.getDisplayScheme()
         ));
-        holder.enabled.setOnCheckedChangeListener((button, enabled) -> listener.onEnabledChanged(entry, enabled));
+        holder.enabled.setOnCheckedChangeListener((button, enabled) ->
+                enabledChangedListener.onEnabledChanged(entry, enabled));
         holder.itemView.setOnClickListener(view -> holder.enabled.performClick());
     }
 
@@ -78,18 +95,21 @@ public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.View
     ) {
         String description = entry.getDescription();
         String installedApps = join(entry.getInstalledAppNames());
-        if (description.isEmpty()) {
-            return installedApps.isEmpty()
-                    ? ""
-                    : context.getString(R.string.installed_apps, installedApps);
+        String defaultHandler = entry.getDefaultHandlerName();
+        String details = installedApps.isEmpty()
+                ? ""
+                : context.getString(R.string.installed_apps, installedApps);
+        if (!defaultHandler.isEmpty()) {
+            details = details.isEmpty()
+                    ? context.getString(R.string.current_handler, defaultHandler)
+                    : context.getString(R.string.scheme_details_with_handler, details, defaultHandler);
         }
-        return installedApps.isEmpty()
+        if (description.isEmpty()) {
+            return details;
+        }
+        return details.isEmpty()
                 ? description
-                : context.getString(
-                        R.string.scheme_description_with_apps,
-                        description,
-                        context.getString(R.string.installed_apps, installedApps)
-                );
+                : context.getString(R.string.scheme_description_with_apps, description, details);
     }
 
     @NonNull
@@ -107,12 +127,14 @@ public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.View
     static final class ViewHolder extends RecyclerView.ViewHolder {
         final TextView title;
         final TextView subtitle;
+        final android.widget.Button clearDefault;
         final SwitchCompat enabled;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
             title = itemView.findViewById(R.id.scheme_title);
             subtitle = itemView.findViewById(R.id.scheme_subtitle);
+            clearDefault = itemView.findViewById(R.id.clear_default_button);
             enabled = itemView.findViewById(R.id.scheme_switch);
         }
     }

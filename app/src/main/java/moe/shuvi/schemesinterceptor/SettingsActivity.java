@@ -9,6 +9,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -57,13 +58,20 @@ public final class SettingsActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        searchInput = findViewById(R.id.search_input);
-        emptyView = findViewById(R.id.empty_view);
         schemeManager = new SchemeManager(this);
-        adapter = new SchemeAdapter((entry, enabled) -> {
-            schemeManager.setAliasEnabled(entry.getScheme(), enabled);
-            reloadEntries();
-        });
+        searchInput = findViewById(R.id.search_input);
+        EditText debugSchemeInput = findViewById(R.id.debug_scheme_input);
+        findViewById(R.id.debug_scheme_button).setOnClickListener(view ->
+                debugLaunchScheme(debugSchemeInput.getText().toString())
+        );
+        emptyView = findViewById(R.id.empty_view);
+        adapter = new SchemeAdapter(
+                (entry, enabled) -> {
+                    schemeManager.setAliasEnabled(entry.getScheme(), enabled);
+                    reloadEntries();
+                },
+                entry -> schemeManager.openAppDefaultsSettings(entry.getDefaultHandlerPackage())
+        );
 
         RecyclerView schemeList = findViewById(R.id.scheme_list);
         schemeList.setLayoutManager(new LinearLayoutManager(this));
@@ -137,6 +145,28 @@ public final class SettingsActivity extends AppCompatActivity {
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putBoolean("installedOnly", installedOnly);
+    }
+
+    private void debugLaunchScheme(@NonNull String input) {
+        String scheme = input.trim();
+        if (scheme.isEmpty()) {
+            Toast.makeText(this, R.string.debug_scheme_required, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        int separator = scheme.indexOf(':');
+        if (separator >= 0) {
+            scheme = scheme.substring(0, separator);
+        }
+        if (!scheme.matches("[A-Za-z][A-Za-z0-9+.-]*")) {
+            Toast.makeText(this, R.string.debug_scheme_invalid, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!schemeManager.hasHandler(scheme)) {
+            Toast.makeText(this, getString(R.string.debug_scheme_no_handler, scheme), Toast.LENGTH_SHORT)
+                    .show();
+            return;
+        }
+        schemeManager.debugLaunchScheme(scheme);
     }
 
     private void reloadEntries() {

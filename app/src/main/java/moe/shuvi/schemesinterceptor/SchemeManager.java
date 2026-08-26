@@ -9,6 +9,7 @@ import android.content.pm.ResolveInfo;
 import android.net.Uri;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -47,12 +48,23 @@ public final class SchemeManager {
         private final String scheme;
         private final String description;
         private final List<String> installedAppNames;
+        private final String defaultHandlerName;
+        private final String defaultHandlerPackage;
         private final boolean enabled;
 
-        SchemeEntry(String scheme, String description, List<String> installedAppNames, boolean enabled) {
+        SchemeEntry(
+                String scheme,
+                String description,
+                List<String> installedAppNames,
+                String defaultHandlerName,
+                String defaultHandlerPackage,
+                boolean enabled
+        ) {
             this.scheme = scheme;
             this.description = description;
             this.installedAppNames = Collections.unmodifiableList(new ArrayList<>(installedAppNames));
+            this.defaultHandlerName = defaultHandlerName;
+            this.defaultHandlerPackage = defaultHandlerPackage;
             this.enabled = enabled;
         }
 
@@ -69,6 +81,16 @@ public final class SchemeManager {
         @NonNull
         public List<String> getInstalledAppNames() {
             return installedAppNames;
+        }
+
+        @NonNull
+        public String getDefaultHandlerName() {
+            return defaultHandlerName;
+        }
+
+        @NonNull
+        public String getDefaultHandlerPackage() {
+            return defaultHandlerPackage;
         }
 
         public boolean isEnabled() {
@@ -112,10 +134,15 @@ public final class SchemeManager {
         List<SchemeEntry> entries = new ArrayList<>();
         for (Map.Entry<String, LinkedHashSet<String>> item : grouped.entrySet()) {
             String scheme = item.getKey();
+            List<String> installedAppNames = findInstalledAppNames(scheme);
+            ResolveInfo directHandler = installedAppNames.isEmpty() ? null : findDirectHandler(scheme);
+            String defaultHandlerName = getHandlerLabel(directHandler);
             entries.add(new SchemeEntry(
                     scheme,
                     join(item.getValue(), " / "),
-                    findInstalledAppNames(scheme),
+                    installedAppNames,
+                    defaultHandlerName,
+                    directHandler == null ? "" : directHandler.activityInfo.packageName,
                     isAliasEnabled(scheme)
             ));
         }
@@ -164,11 +191,109 @@ public final class SchemeManager {
         return translations.optString("en", "").trim();
     }
 
+    /**
+     * Returns the application Android will launch directly for this Scheme.
+     * Returns an empty string when Android would show its resolver instead.
+     */
+    @NonNull
+    public String findDefaultHandlerName(@NonNull String scheme) {
+        ResolveInfo handler = findDirectHandler(scheme);
+        return getHandlerLabel(handler);
+    }
+
+    @NonNull
+    private String getHandlerLabel(@Nullable ResolveInfo handler) {
+        if (handler == null || handler.activityInfo == null) {
+            return "";
+        }
+        return getApplicationLabel(handler.activityInfo);
+    }
+
+    @NonNull
+    private String getApplicationLabel(@NonNull ActivityInfo activityInfo) {
+        CharSequence label = activityInfo.applicationInfo.loadLabel(packageManager);
+        return label == null || label.length() == 0
+                ? activityInfo.packageName
+                : label.toString();
+    }
+
+    /** Returns whether at least one enabled activity can handle a Scheme. */
+    public boolean hasHandler(@NonNull String scheme) {
+        return !packageManager.queryIntentActivities(
+                newSchemeIntent(scheme),
+                PackageManager.MATCH_DEFAULT_ONLY
+        ).isEmpty();
+    }
+
+    /**
+     * Filters out Android's resolver activity. resolveActivity() returns that
+     * system component when multiple handlers exist without a direct default.
+     */
+    @Nullable
+    private ResolveInfo findDirectHandler(@NonNull String scheme) {
+        ResolveInfo resolved = packageManager.resolveActivity(
+                newSchemeIntent(scheme),
+                PackageManager.MATCH_DEFAULT_ONLY
+        );
+        if (resolved == null || resolved.activityInfo == null) {
+            return null;
+        }
+        for (ResolveInfo candidate : packageManager.queryIntentActivities(
+                newSchemeIntent(scheme),
+                PackageManager.MATCH_DEFAULT_ONLY
+        )) {
+            if (candidate.activityInfo != null
+                    && resolved.activityInfo.packageName.equals(candidate.activityInfo.packageName)
+                    && resolved.activityInfo.name.equals(candidate.activityInfo.name)) {
+                return resolved;
+            }
+        }
+        return null;
+    }
+
+    /** Launches a resolver-visible Scheme intent for debugging. */
+    public void debugLaunchScheme(@NonNull String scheme) {
+        Intent intent = newSchemeIntent(scheme);
+        intent.putExtra(
+                Intent.EXTRA_REFERRER,
+                Uri.parse("android-app://" + appContext.getPackageName())
+        );
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        appContext.startActivity(intent);
+    }
+
+
+    /** Opens Android's default-opening settings, falling back to app details. */
+    public void openAppDefaultsSettings(@NonNull String packageName) {
+        Uri packageUri = Uri.fromParts("package", packageName, null);
+        Intent intent = new Intent(android.provider.Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS);
+        intent.setData(packageUri);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            appContext.startActivity(intent);
+        } catch (android.content.ActivityNotFoundException ignored) {
+            Intent fallback = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            fallback.setData(packageUri);
+            fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            appContext.startActivity(fallback);
+        }
+    }
+
+    @NonNull
+    private Intent newSchemeIntent(@NonNull String scheme) {
+        String normalized = scheme.trim();
+        int separator = normalized.indexOf(':');
+        if (separator >= 0) {
+            normalized = normalized.substring(0, separator);
+        }
+        return new Intent(Intent.ACTION_VIEW, Uri.parse(normalized + "://"));
+    }
+
+    /** Returns distinct labels of other installed apps that can handle this scheme. */
     @NonNull
     public List<String> findInstalledAppNames(@NonNull String scheme) {
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(scheme + "://"));
         List<ResolveInfo> handlers = packageManager.queryIntentActivities(
-                intent,
+                newSchemeIntent(scheme),
                 PackageManager.MATCH_DEFAULT_ONLY
         );
         Set<String> appNames = new LinkedHashSet<>();
@@ -177,12 +302,7 @@ public final class SchemeManager {
             if (activityInfo == null || appContext.getPackageName().equals(activityInfo.packageName)) {
                 continue;
             }
-            CharSequence label = activityInfo.loadLabel(packageManager);
-            if (label != null && label.length() > 0) {
-                appNames.add(label.toString());
-            } else {
-                appNames.add(activityInfo.packageName);
-            }
+            appNames.add(getApplicationLabel(activityInfo));
         }
         List<String> result = new ArrayList<>(appNames);
         Collections.sort(result, String.CASE_INSENSITIVE_ORDER);

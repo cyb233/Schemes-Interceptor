@@ -5,7 +5,17 @@
     <string name="about">About</string>
     <string name="about_message">GitHub: https://github.com/cyb233/Schemes-Interceptor</string>
     <string name="installed_apps">Installed: %1$s</string>
+    <string name="current_handler">Current handler: %1$s</string>
+    <string name="scheme_details_with_handler">%1$s · Current handler: %2$s</string>
     <string name="scheme_description_with_apps">%1$s · %2$s</string>
+    <string name="debug_scheme_hint">Scheme to test</string>
+    <string name="debug_scheme">Debug</string>
+    <string name="debug_scheme_required">Enter a Scheme to test</string>
+    <string name="debug_scheme_invalid">Enter a valid URL Scheme</string>
+    <string name="debug_scheme_no_handler">No application can handle %1$s://</string>
+    <string name="intercepted_scheme">%1$s opened %2$s://</string>
+    <string name="clear_default">Clear default</string>
+    <string name="unknown_caller">Unknown app</string>
     <string name="enabled">Enable %1$s</string>
     <string name="no_schemes">No matching schemes</string>
 </resources>

@@ -13,6 +13,7 @@
   {"scheme": "mqqapi","desc": "TIM"},
   {"scheme": "timmqqapi","desc": "TIM"},
   {"scheme": "weixin","desc": {"zh-CN": "微信","en": "WeChat"}},
+  {"scheme": "wechat","desc": {"zh-CN": "微信", "en": "WeChat"}},
   {"scheme": "wxwork","desc": {"zh-CN": "企业微信","en": "WeCom"}},
   {"scheme": "dingtalk","desc": {"zh-CN": "钉钉","en": "DingTalk"}},
   {"scheme": "feishu","desc": {"zh-CN": "飞书","en": "Feishu"}},

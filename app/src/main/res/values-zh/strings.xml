@@ -5,7 +5,17 @@
     <string name="about">关于</string>
     <string name="about_message">GitHub: https://github.com/cyb233/Schemes-Interceptor</string>
     <string name="installed_apps">已安装：%1$s</string>
+    <string name="current_handler">当前处理应用：%1$s</string>
+    <string name="scheme_details_with_handler">%1$s · 当前处理应用：%2$s</string>
     <string name="scheme_description_with_apps">%1$s · %2$s</string>
+    <string name="debug_scheme_hint">要测试的 Scheme</string>
+    <string name="debug_scheme">调试</string>
+    <string name="debug_scheme_required">请输入要测试的 Scheme</string>
+    <string name="debug_scheme_invalid">请输入有效的 URL Scheme</string>
+    <string name="debug_scheme_no_handler">没有应用可处理 %1$s://</string>
+    <string name="intercepted_scheme">%1$s 打开了 %2$s://</string>
+    <string name="clear_default">清除默认</string>
+    <string name="unknown_caller">未知应用</string>
     <string name="enabled">启用 %1$s</string>
     <string name="no_schemes">没有符合条件的 Scheme</string>
 </resources>

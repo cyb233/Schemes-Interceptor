@@ -20,6 +20,7 @@
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
     </FrameLayout>
 
+    <include layout="@layout/view_scheme_debug" />
     <include layout="@layout/view_scheme_search" />
 
     <FrameLayout

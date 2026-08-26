@@ -108,7 +108,7 @@ Each build type produces ARMv7, ARMv8, x86, x86_64, and Universal APKs. File nam
 ```text
 app-ARMv7-release.apk
 app-ARMv8-debug.apk
-app-Universal-release.apk
+app-Universal-release-unsigned.apk
 ```
 
 Debug APKs are signed with the committed `debug.keystore`. Release builds enable R8 code shrinking, optimization, and resource shrinking, but no release signing configuration is currently provided, so release APKs are unsigned.

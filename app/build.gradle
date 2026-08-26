@@ -61,7 +61,9 @@ androidComponents {
                             'x86'       : 'x86',
                             'x86_64'    : 'x86_64'
                     ][abi] ?: abi
-            output.outputFileName.set("app-${architecture}-${variant.buildType}.apk")
+            def signingConfig = android.buildTypes.getByName(variant.buildType).signingConfig
+            def signatureSuffix = signingConfig == null ? '-unsigned' : ''
+            output.outputFileName.set("app-${architecture}-${variant.buildType}${signatureSuffix}.apk")
         }
     }
 }

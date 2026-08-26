@@ -108,7 +108,7 @@ app/build/outputs/apk/
 ```text
 app-ARMv7-release.apk
 app-ARMv8-debug.apk
-app-Universal-release.apk
+app-Universal-release-unsigned.apk
 ```
 
 Debug APK 使用仓库中的 `debug.keystore` 签名；release 构建已启用 R8 代码压缩、优化和资源压缩，但当前未配置发布签名，因此 release APK 为未签名包。

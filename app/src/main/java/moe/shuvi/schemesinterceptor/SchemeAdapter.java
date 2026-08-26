@@ -1,6 +1,7 @@
 package moe.shuvi.schemesinterceptor;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.ViewHolder> {
+    private static final String TAG = "SchemeAdapter";
     public interface OnEnabledChangedListener {
         void onEnabledChanged(@NonNull SchemeManager.SchemeEntry entry, boolean enabled);
     }
@@ -22,23 +24,44 @@ public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.View
         void onClearDefault(@NonNull SchemeManager.SchemeEntry entry);
     }
 
+    public interface OnEntryClickListener {
+        void onEntryClick(@NonNull SchemeManager.SchemeEntry entry);
+    }
+
+    public interface OnEntryLongClickListener {
+        void onEntryLongClick(@NonNull SchemeManager.SchemeEntry entry);
+    }
+
     private final List<SchemeManager.SchemeEntry> entries = new ArrayList<>();
     private final OnEnabledChangedListener enabledChangedListener;
     private final OnClearDefaultListener clearDefaultListener;
+    private final OnEntryClickListener entryClickListener;
+    private final OnEntryLongClickListener entryLongClickListener;
 
     public SchemeAdapter(
             @NonNull OnEnabledChangedListener enabledChangedListener,
-            @NonNull OnClearDefaultListener clearDefaultListener
+            @NonNull OnClearDefaultListener clearDefaultListener,
+            @NonNull OnEntryClickListener entryClickListener,
+            @NonNull OnEntryLongClickListener entryLongClickListener
     ) {
         this.enabledChangedListener = enabledChangedListener;
         this.clearDefaultListener = clearDefaultListener;
+        this.entryClickListener = entryClickListener;
+        this.entryLongClickListener = entryLongClickListener;
         setHasStableIds(true);
     }
 
     public void submitList(@NonNull List<SchemeManager.SchemeEntry> newEntries) {
+        Log.d(TAG, "Submitting " + newEntries.size() + " scheme entries");
+        int previousSize = entries.size();
         entries.clear();
+        if (previousSize > 0) {
+            notifyItemRangeRemoved(0, previousSize);
+        }
         entries.addAll(newEntries);
-        notifyDataSetChanged();
+        if (!newEntries.isEmpty()) {
+            notifyItemRangeInserted(0, newEntries.size());
+        }
     }
 
     @Override
@@ -58,8 +81,9 @@ public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.View
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         SchemeManager.SchemeEntry entry = entries.get(position);
         holder.title.setText(entry.getDisplayScheme());
-        holder.subtitle.setText(buildSubtitle(holder.itemView.getContext(), entry));
-        holder.subtitle.setVisibility(holder.subtitle.getText().length() == 0
+        String subtitle = buildSubtitle(holder.itemView.getContext(), entry);
+        holder.subtitle.setText(subtitle);
+        holder.subtitle.setVisibility(subtitle.isEmpty()
                 ? View.GONE
                 : View.VISIBLE);
 
@@ -68,7 +92,14 @@ public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.View
                 : View.VISIBLE);
         holder.clearDefault.setOnClickListener(entry.getDefaultHandlerPackage().isEmpty()
                 ? null
-                : view -> clearDefaultListener.onClearDefault(entry));
+                : view -> {
+                    Log.i(
+                            TAG,
+                            "Default-settings requested for scheme=" + entry.getScheme()
+                                    + ", package=" + entry.getDefaultHandlerPackage()
+                    );
+                    clearDefaultListener.onClearDefault(entry);
+                });
 
         // Detach before changing checked state: RecyclerView reuses views and
         // setChecked() would otherwise persist an unintended component state.
@@ -78,9 +109,19 @@ public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.View
                 R.string.enabled,
                 entry.getDisplayScheme()
         ));
-        holder.enabled.setOnCheckedChangeListener((button, enabled) ->
-                enabledChangedListener.onEnabledChanged(entry, enabled));
-        holder.itemView.setOnClickListener(view -> holder.enabled.performClick());
+        holder.enabled.setOnCheckedChangeListener((button, enabled) -> {
+            Log.i(TAG, "Alias toggle requested: scheme=" + entry.getScheme() + ", enabled=" + enabled);
+            enabledChangedListener.onEnabledChanged(entry, enabled);
+        });
+        holder.itemView.setOnClickListener(view -> {
+            Log.d(TAG, "Scheme details clicked: scheme=" + entry.getScheme());
+            entryClickListener.onEntryClick(entry);
+        });
+        holder.itemView.setOnLongClickListener(view -> {
+            Log.d(TAG, "Scheme long-clicked: scheme=" + entry.getScheme());
+            entryLongClickListener.onEntryLongClick(entry);
+            return true;
+        });
     }
 
     @Override
@@ -96,35 +137,24 @@ public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.View
         String description = entry.getDescription();
         String installedApps = join(entry.getInstalledAppNames());
         String defaultHandler = entry.getDefaultHandlerName();
-        String details = installedApps.isEmpty()
-                ? ""
-                : context.getString(R.string.installed_apps, installedApps);
-        if (!defaultHandler.isEmpty()) {
-            details = details.isEmpty()
-                    ? context.getString(R.string.current_handler, defaultHandler)
-                    : context.getString(R.string.scheme_details_with_handler, details, defaultHandler);
+        if (!installedApps.isEmpty()) {
+            return defaultHandler.isEmpty()
+                    ? context.getString(R.string.installed_apps, installedApps)
+                    : context.getString(
+                            R.string.scheme_details_with_handler,
+                            context.getString(R.string.installed_apps, installedApps),
+                            defaultHandler
+                    );
         }
-        if (description.isEmpty()) {
-            return details;
-        }
-        return details.isEmpty()
-                ? description
-                : context.getString(R.string.scheme_description_with_apps, description, details);
+        return description;
     }
 
     @NonNull
     private static String join(@NonNull List<String> items) {
-        StringBuilder result = new StringBuilder();
-        for (String item : items) {
-            if (result.length() > 0) {
-                result.append(" / ");
-            }
-            result.append(item);
-        }
-        return result.toString();
+        return android.text.TextUtils.join(" / ", items);
     }
 
-    static final class ViewHolder extends RecyclerView.ViewHolder {
+    public static final class ViewHolder extends RecyclerView.ViewHolder {
         final TextView title;
         final TextView subtitle;
         final android.widget.Button clearDefault;

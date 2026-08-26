@@ -103,6 +103,16 @@ gradle build
 app/build/outputs/apk/
 ```
 
+每个 build type 会生成 ARMv7、ARMv8、x86、x86_64 和 Universal APK，文件名会包含架构与构建类型，例如：
+
+```text
+app-ARMv7-release.apk
+app-ARMv8-debug.apk
+app-Universal-release.apk
+```
+
+Debug APK 使用 Android 自动生成的 debug keystore 签名；当前未配置发布签名，因此 release APK 为未签名包。
+
 安装 debug APK：
 
 ```bash

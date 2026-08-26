@@ -17,19 +17,77 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '9.5.0'
 
-      - name: Build APK
-        run: gradle build
+      - name: Build APKs
+        run: gradle assembleDebug assembleRelease
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v7
+      - name: Set up artifact client
+        run: |
+          npm install --global @actions/artifact@2.3.2
+          echo "NODE_PATH=$(npm root --quiet --global)" >> "$GITHUB_ENV"
+
+      - name: Expose artifact runtime variables
+        uses: actions/github-script@v8
         with:
-          name: schemes-interceptor-apk
-          path: app/build/outputs/apk/**/*.apk
-          if-no-files-found: error
+          script: |
+            core.exportVariable('ACTIONS_RESULTS_URL', process.env.ACTIONS_RESULTS_URL);
+            core.exportVariable('ACTIONS_RUNTIME_URL', process.env.ACTIONS_RUNTIME_URL);
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
+
+      - name: Upload APKs individually
+        shell: node {0}
+        env:
+          BUILD_OUTPUT_DIR: app/build/outputs/apk
+        run: |
+          const fs = require('fs');
+          const path = require('path');
+          const { DefaultArtifactClient } = require('@actions/artifact');
+
+          function findApks(directory) {
+            const apkFiles = [];
+            for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+              const entryPath = path.join(directory, entry.name);
+              if (entry.isDirectory()) {
+                apkFiles.push(...findApks(entryPath));
+              } else if (entry.isFile() && entry.name.endsWith('.apk')) {
+                apkFiles.push(entryPath);
+              }
+            }
+            return apkFiles.sort();
+          }
+
+          async function main() {
+            const outputDirectory = process.env.BUILD_OUTPUT_DIR;
+            const apkFiles = findApks(outputDirectory);
+
+            if (apkFiles.length === 0) {
+              throw new Error(`No APK files found in ${outputDirectory}`);
+            }
+
+            console.log(`Found ${apkFiles.length} APK file(s).`);
+            const artifactClient = new DefaultArtifactClient();
+
+            for (const apkPath of apkFiles) {
+              const artifactName = path.basename(apkPath);
+              console.log(`Uploading ${apkPath} as ${artifactName}`);
+              const result = await artifactClient.uploadArtifact(
+                artifactName,
+                [apkPath],
+                path.dirname(apkPath),
+                { skipArchive: true }
+              );
+              console.log(
+                `Uploaded ${artifactName}: id=${result.id}, size=${result.size} bytes`
+              );
+            }
+          }
+
+          main().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });

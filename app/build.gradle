@@ -15,9 +15,21 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Debug artifacts are signed automatically with the debug keystore.
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            universalApk true
         }
     }
 
@@ -27,9 +39,28 @@ android {
     }
 }
 
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        variant.outputs.forEach { output ->
+            def abi = output.filters.find { it.filterType.name() == 'ABI' }?.identifier
+            def architecture = abi == null
+                    ? 'Universal'
+                    : [
+                            'armeabi-v7a': 'ARMv7',
+                            'arm64-v8a' : 'ARMv8',
+                            'x86'       : 'x86',
+                            'x86_64'    : 'x86_64'
+                    ][abi] ?: abi
+            output.outputFileName.set("app-${architecture}-${variant.buildType}.apk")
+        }
+    }
+}
+
+
 apply from: rootProject.file('gradle/scheme-manifest.gradle')
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.8.0'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
+    implementation 'com.google.android.material:material:1.14.0'
 }

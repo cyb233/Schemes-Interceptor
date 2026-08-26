@@ -103,6 +103,16 @@ Build outputs are written to:
 app/build/outputs/apk/
 ```
 
+Each build type produces ARMv7, ARMv8, x86, x86_64, and Universal APKs. File names include the architecture and build type, for example:
+
+```text
+app-ARMv7-release.apk
+app-ARMv8-debug.apk
+app-Universal-release.apk
+```
+
+Debug APKs are signed automatically with Android's debug keystore. A release signing configuration is not currently provided, so release APKs are unsigned.
+
 To install the debug APK:
 
 ```bash

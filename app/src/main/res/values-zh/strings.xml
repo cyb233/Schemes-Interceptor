@@ -8,11 +8,14 @@
     <string name="current_handler">当前处理应用：%1$s</string>
     <string name="scheme_details_with_handler">%1$s · 当前处理应用：%2$s</string>
     <string name="scheme_description_with_apps">%1$s · %2$s</string>
+    <string name="scheme_detail_description">描述：%1$s</string>
+    <string name="no_installed_apps">没有其他已安装应用</string>
     <string name="debug_scheme_hint">要测试的 Scheme</string>
     <string name="debug_scheme">调试</string>
     <string name="debug_scheme_required">请输入要测试的 Scheme</string>
     <string name="debug_scheme_invalid">请输入有效的 URL Scheme</string>
     <string name="debug_scheme_no_handler">没有应用可处理 %1$s://</string>
+    <string name="debug_scheme_filled">已将 %1$s 填入调试输入框</string>
     <string name="intercepted_scheme">%1$s 打开了 %2$s://</string>
     <string name="clear_default">清除默认</string>
     <string name="unknown_caller">未知应用</string>

@@ -2,7 +2,7 @@
 
 English | [简体中文](README.md)
 
-An Android blank application that intercepts multiple URL schemes based on configuration. A transparent `BlankActivity` receives a Scheme intent and immediately finishes; the settings screen lets users manage each Scheme interception switch.
+An Android application that intercepts multiple URL Schemes based on configuration. A transparent `BlankActivity` receives a Scheme Intent and immediately finishes; users can manage interception switches by Scheme from the settings screen.
 
 ## Screenshots
 
@@ -91,7 +91,7 @@ A Scheme must follow URL Scheme syntax: it starts with an ASCII letter and may b
 - Android SDK 37
 - Android Gradle Plugin 9.3.0
 
-The project currently does not include the Gradle Wrapper. If Gradle is installed locally, run:
+Use a compatible Gradle 9.5.0 installation:
 
 ```bash
 gradle build
@@ -111,7 +111,7 @@ app-ARMv8-debug.apk
 app-Universal-release.apk
 ```
 
-Debug APKs are signed automatically with Android's debug keystore. A release signing configuration is not currently provided, so release APKs are unsigned.
+Debug APKs are signed with the committed `debug.keystore`. Release builds enable R8 code shrinking, optimization, and resource shrinking, but no release signing configuration is currently provided, so release APKs are unsigned.
 
 To install the debug APK:
 
@@ -157,8 +157,8 @@ The workflow at `.github/workflows/build.yml` runs on pushes, pull requests, and
 1. Checks out the source code;
 2. Sets up JDK 17;
 3. Sets up Gradle 9.5.0;
-4. Runs `gradle build`;
-5. Uploads `app/build/outputs/apk/**/*.apk` as an artifact.
+4. Runs `gradle assembleDebug assembleRelease`;
+5. Discovers each APK dynamically and uploads it as an individual, unarchived artifact named after the APK, so a specific architecture and build type can be downloaded independently.
 
 ## License
 

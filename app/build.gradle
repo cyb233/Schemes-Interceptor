@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace 'moe.shuvi.schemesinterceptor'
+    namespace = 'moe.shuvi.schemesinterceptor'
     compileSdk 37
 
     defaultConfig {
@@ -14,22 +14,32 @@ android {
         versionName '1.0'
     }
 
+    signingConfigs {
+        debug {
+            storeFile rootProject.file('debug.keystore')
+            storePassword '123456'
+            keyAlias 'androiddebugkey'
+            keyPassword '123456'
+        }
+    }
+
     buildTypes {
         debug {
-            // Debug artifacts are signed automatically with the debug keystore.
+            signingConfig = signingConfigs.debug
         }
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
     splits {
         abi {
-            enable true
+            enable = true
             reset()
             include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
-            universalApk true
+            universalApk = true
         }
     }
 

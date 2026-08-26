@@ -24,6 +24,7 @@ captures/
 # Signing and local secrets
 *.jks
 *.keystore
+!debug.keystore
 keystore.properties
 
 # OS/editor files

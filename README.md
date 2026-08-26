@@ -2,7 +2,7 @@
 
 [English](README.en.md) | 简体中文
 
-一个 Android 空白应用，用于按配置拦截多种 URL Scheme。应用通过透明的 `BlankActivity` 接收 Scheme Intent，并立即关闭自身；用户可以在设置页按 Scheme 管理拦截开关。
+一个用于按配置拦截多种 URL Scheme 的 Android 应用。应用通过透明的 `BlankActivity` 接收 Scheme Intent，并立即关闭自身；用户可以在设置页按 Scheme 管理拦截开关。
 
 ## 截图
 
@@ -91,7 +91,7 @@ Scheme 必须符合 URL Scheme 格式：以英文字母开头，后续可使用�
 - Android SDK 37
 - Android Gradle Plugin 9.3.0
 
-项目当前未提交 Gradle Wrapper；如果本地已安装 Gradle，可执行：
+使用兼容的 Gradle 9.5.0 安装执行：
 
 ```bash
 gradle build
@@ -111,7 +111,7 @@ app-ARMv8-debug.apk
 app-Universal-release.apk
 ```
 
-Debug APK 使用 Android 自动生成的 debug keystore 签名；当前未配置发布签名，因此 release APK 为未签名包。
+Debug APK 使用仓库中的 `debug.keystore` 签名；release 构建已启用 R8 代码压缩、优化和资源压缩，但当前未配置发布签名，因此 release APK 为未签名包。
 
 安装 debug APK：
 
@@ -157,8 +157,8 @@ gradle installDebug
 1. checkout 源码；
 2. 配置 JDK 17；
 3. 配置 Gradle 9.5.0；
-4. 执行 `gradle build`；
-5. 上传 `app/build/outputs/apk/**/*.apk` 作为 artifact。
+4. 执行 `gradle assembleDebug assembleRelease`；
+5. 动态发现每个 APK，并以 APK 文件名创建独立的、未归档 artifact，便于单独下载所需架构与构建类型。
 
 ## 许可证
 

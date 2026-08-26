@@ -4,6 +4,10 @@ English | [简体中文](README.md)
 
 An Android blank application that intercepts multiple URL schemes based on configuration. A transparent `BlankActivity` receives a Scheme intent and immediately finishes; the settings screen lets users manage each Scheme interception switch.
 
+## Screenshots
+
+<img src="./img/choice_en.png" alt="Scheme chooser (English)" height="480">
+
 ## Features
 
 - Automatically generates URL Scheme `activity-alias` entries from `schemes.json`.
@@ -24,7 +28,7 @@ The configuration file is:
 
 `app/src/main/assets/schemes.json`
 
-It contains a JSON array. Each entry must include a `scheme` field:
+It contains a JSON array. Each entry must include a `scheme` field. Add a separate entry for each application, even when multiple applications use the same Scheme:
 
 ```json
 [

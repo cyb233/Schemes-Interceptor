@@ -4,6 +4,10 @@
 
 一个 Android 空白应用，用于按配置拦截多种 URL Scheme。应用通过透明的 `BlankActivity` 接收 Scheme Intent，并立即关闭自身；用户可以在设置页按 Scheme 管理拦截开关。
 
+## 截图
+
+<img src="./img/choice_zh.png" alt="Scheme 选择器（简体中文）" height="480">
+
 ## 功能
 
 - 从 `schemes.json` 自动生成 URL Scheme 对应的 `activity-alias`。
@@ -24,7 +28,7 @@
 
 `app/src/main/assets/schemes.json`
 
-文件格式为 JSON 数组，每项至少包含 `scheme`：
+文件格式为 JSON 数组，每项至少包含 `scheme`。当多个应用使用同一 Scheme 时，应为每个应用分别添加一条配置：
 
 ```json
 [

@@ -3,7 +3,7 @@
     <string name="search_hint">Search schemes or descriptions</string>
     <string name="show_installed_only">Show installed apps only</string>
     <string name="about">About</string>
-    <string name="about_message">Homepage:\nGitHub:</string>
+    <string name="about_message">GitHub: https://github.com/cyb233/Schemes-Interceptor</string>
     <string name="installed_apps">Installed: %1$s</string>
     <string name="scheme_description_with_apps">%1$s · %2$s</string>
     <string name="enabled">Enable %1$s</string>

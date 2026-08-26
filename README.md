@@ -1,5 +1,7 @@
 # Schemes Interceptor
 
+[English](README.en.md) | 简体中文
+
 一个 Android 空白应用，用于按配置拦截多种 URL Scheme。应用通过透明的 `BlankActivity` 接收 Scheme Intent，并立即关闭自身；用户可以在设置页按 Scheme 管理拦截开关。
 
 ## 功能

@@ -1,6 +1,9 @@
 package moe.shuvi.schemesinterceptor;
 
 import android.os.Bundle;
+import android.text.SpannableString;
+import android.text.method.LinkMovementMethod;
+import android.text.util.Linkify;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -111,11 +114,20 @@ public final class SettingsActivity extends AppCompatActivity {
             return true;
         }
         if (id == R.id.action_about) {
-            new AlertDialog.Builder(this)
+            SpannableString message = new SpannableString(getString(R.string.about_message));
+            Linkify.addLinks(message, Linkify.WEB_URLS);
+            AlertDialog dialog = new AlertDialog.Builder(this)
                     .setTitle(R.string.about)
-                    .setMessage(R.string.about_message)
+                    .setMessage(message)
                     .setPositiveButton(android.R.string.ok, null)
-                    .show();
+                    .create();
+            dialog.setOnShowListener(ignored -> {
+                TextView messageView = dialog.findViewById(android.R.id.message);
+                if (messageView != null) {
+                    messageView.setMovementMethod(LinkMovementMethod.getInstance());
+                }
+            });
+            dialog.show();
             return true;
         }
         return super.onOptionsItemSelected(item);

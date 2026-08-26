@@ -1,6 +1,8 @@
 package moe.shuvi.schemesinterceptor;
 
 import android.content.Context;
+import android.text.SpannableStringBuilder;
+import android.text.style.StrikethroughSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -81,9 +83,9 @@ public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.View
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         SchemeManager.SchemeEntry entry = entries.get(position);
         holder.title.setText(entry.getDisplayScheme());
-        String subtitle = buildSubtitle(holder.itemView.getContext(), entry);
+        CharSequence subtitle = buildSubtitle(holder.itemView.getContext(), entry);
         holder.subtitle.setText(subtitle);
-        holder.subtitle.setVisibility(subtitle.isEmpty()
+        holder.subtitle.setVisibility(subtitle.length() == 0
                 ? View.GONE
                 : View.VISIBLE);
 
@@ -130,23 +132,53 @@ public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.View
     }
 
     @NonNull
-    private static String buildSubtitle(
+    private static CharSequence buildSubtitle(
             @NonNull Context context,
             @NonNull SchemeManager.SchemeEntry entry
     ) {
-        String description = entry.getDescription();
         String installedApps = join(entry.getInstalledAppNames());
-        String defaultHandler = entry.getDefaultHandlerName();
         if (!installedApps.isEmpty()) {
-            return defaultHandler.isEmpty()
+            String text = entry.getDefaultHandlerName().isEmpty()
                     ? context.getString(R.string.installed_apps, installedApps)
                     : context.getString(
                             R.string.scheme_details_with_handler,
                             context.getString(R.string.installed_apps, installedApps),
-                            defaultHandler
+                            entry.getDefaultHandlerName()
                     );
+            return appendUnavailableApps(
+                    text,
+                    entry.getUnavailableAppNames(),
+                    context.getString(R.string.unavailable_apps)
+            );
         }
-        return description;
+        if (!entry.getUnavailableAppNames().isEmpty()) {
+            return appendUnavailableApps(
+                    entry.getDescription(),
+                    entry.getUnavailableAppNames(),
+                    context.getString(R.string.unavailable_apps)
+            );
+        }
+        return entry.getDescription();
+    }
+
+    @NonNull
+    private static CharSequence appendUnavailableApps(
+            @NonNull String prefix,
+            @NonNull List<String> unavailableApps,
+            @NonNull String unavailableLabel
+    ) {
+        if (unavailableApps.isEmpty()) {
+            return prefix;
+        }
+        SpannableStringBuilder result = new SpannableStringBuilder(prefix);
+        if (result.length() > 0) {
+            result.append(" · ");
+        }
+        result.append(unavailableLabel).append(": ");
+        int start = result.length();
+        result.append(join(unavailableApps));
+        result.setSpan(new StrikethroughSpan(), start, result.length(), 0);
+        return result;
     }
 
     @NonNull

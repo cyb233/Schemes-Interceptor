@@ -10,6 +10,8 @@
     <string name="scheme_description_with_apps">%1$s · %2$s</string>
     <string name="scheme_detail_description">Description: %1$s</string>
     <string name="no_installed_apps">No other installed applications</string>
+    <string name="unavailable_apps">Unavailable</string>
+    <string name="unavailable_apps_detail">Unavailable: %1$s</string>
     <string name="debug_scheme_hint">Scheme to test</string>
     <string name="debug_scheme">Debug</string>
     <string name="debug_scheme_required">Enter a Scheme to test</string>

@@ -206,6 +206,16 @@ public final class SettingsActivity extends AppCompatActivity {
                     join(entry.getInstalledAppNames())
             ));
         }
+        TextView unavailableApps = content.findViewById(R.id.scheme_detail_unavailable_apps);
+        if (entry.getUnavailableAppNames().isEmpty()) {
+            unavailableApps.setVisibility(View.GONE);
+        } else {
+            unavailableApps.setText(getString(
+                    R.string.unavailable_apps_detail,
+                    join(entry.getUnavailableAppNames())
+            ));
+        }
+
         dialog.setContentView(content);
         dialog.show();
     }
@@ -267,9 +277,7 @@ public final class SettingsActivity extends AppCompatActivity {
             if (installedOnly && entry.getInstalledAppNames().isEmpty()) {
                 continue;
             }
-            if (!query.isEmpty()
-                    && !entry.getScheme().toLowerCase(Locale.ROOT).contains(query)
-                    && !entry.getDescription().toLowerCase(Locale.ROOT).contains(query)) {
+            if (!query.isEmpty() && !matchesQuery(entry, query)) {
                 continue;
             }
             filtered.add(entry);
@@ -287,7 +295,29 @@ public final class SettingsActivity extends AppCompatActivity {
                 : android.view.View.GONE);
     }
 
-    /** Reduces the TextWatcher implementation to the only callback this screen needs. */
+    private static boolean matchesQuery(@NonNull SchemeManager.SchemeEntry entry, @NonNull String query) {
+        return containsIgnoreCase(entry.getScheme(), query)
+                || containsIgnoreCase(entry.getDescription(), query)
+                || containsAnyIgnoreCase(entry.getInstalledAppNames(), query)
+                || containsAnyIgnoreCase(entry.getInstalledAppPackages(), query)
+                || containsAnyIgnoreCase(entry.getUnavailableAppNames(), query)
+                || containsAnyIgnoreCase(entry.getUnavailableAppPackages(), query);
+    }
+
+    private static boolean containsAnyIgnoreCase(@NonNull List<String> values, @NonNull String query) {
+        for (String value : values) {
+            if (containsIgnoreCase(value, query)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsIgnoreCase(@NonNull String value, @NonNull String query) {
+        return value.toLowerCase(Locale.ROOT).contains(query);
+    }
+
+
     private abstract static class SimpleTextWatcher implements android.text.TextWatcher {
         @Override
         public void beforeTextChanged(CharSequence text, int start, int count, int after) {

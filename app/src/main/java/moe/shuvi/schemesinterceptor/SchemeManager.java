@@ -52,6 +52,9 @@ public final class SchemeManager {
         private final String scheme;
         private final String description;
         private final List<String> installedAppNames;
+        private final List<String> installedAppPackages;
+        private final List<String> unavailableAppNames;
+        private final List<String> unavailableAppPackages;
         private final String defaultHandlerName;
         private final String defaultHandlerPackage;
         private final boolean enabled;
@@ -60,6 +63,9 @@ public final class SchemeManager {
                 String scheme,
                 String description,
                 List<String> installedAppNames,
+                List<String> installedAppPackages,
+                List<String> unavailableAppNames,
+                List<String> unavailableAppPackages,
                 String defaultHandlerName,
                 String defaultHandlerPackage,
                 boolean enabled
@@ -67,6 +73,9 @@ public final class SchemeManager {
             this.scheme = scheme;
             this.description = description;
             this.installedAppNames = List.copyOf(installedAppNames);
+            this.installedAppPackages = List.copyOf(installedAppPackages);
+            this.unavailableAppNames = List.copyOf(unavailableAppNames);
+            this.unavailableAppPackages = List.copyOf(unavailableAppPackages);
             this.defaultHandlerName = defaultHandlerName;
             this.defaultHandlerPackage = defaultHandlerPackage;
             this.enabled = enabled;
@@ -88,6 +97,21 @@ public final class SchemeManager {
         }
 
         @NonNull
+        public List<String> getInstalledAppPackages() {
+            return installedAppPackages;
+        }
+
+        @NonNull
+        public List<String> getUnavailableAppNames() {
+            return unavailableAppNames;
+        }
+
+        @NonNull
+        public List<String> getUnavailableAppPackages() {
+            return unavailableAppPackages;
+        }
+
+        @NonNull
         public String getDefaultHandlerName() {
             return defaultHandlerName;
         }
@@ -104,6 +128,25 @@ public final class SchemeManager {
         @NonNull
         public String getDisplayScheme() {
             return scheme + "://";
+        }
+    }
+
+    private static final class HandlerApps {
+        final List<String> availableNames;
+        final List<String> availablePackages;
+        final List<String> unavailableNames;
+        final List<String> unavailablePackages;
+
+        HandlerApps(
+                List<String> availableNames,
+                List<String> availablePackages,
+                List<String> unavailableNames,
+                List<String> unavailablePackages
+        ) {
+            this.availableNames = availableNames;
+            this.availablePackages = availablePackages;
+            this.unavailableNames = unavailableNames;
+            this.unavailablePackages = unavailablePackages;
         }
     }
 
@@ -141,19 +184,25 @@ public final class SchemeManager {
         List<SchemeEntry> entries = new ArrayList<>();
         for (Map.Entry<String, LinkedHashSet<String>> item : grouped.entrySet()) {
             String scheme = item.getKey();
-            List<String> installedAppNames = findInstalledAppNames(scheme);
+            HandlerApps handlerApps = findHandlerApps(scheme);
+            List<String> installedAppNames = handlerApps.availableNames;
+            List<String> installedAppPackages = handlerApps.availablePackages;
             ResolveInfo directHandler = installedAppNames.isEmpty() ? null : findDirectHandler(scheme);
             String defaultHandlerName = getHandlerLabel(directHandler);
             Log.v(
                     TAG,
                     "Scheme=" + scheme
                             + ", installedHandlers=" + installedAppNames.size()
+                            + ", unavailableHandlers=" + handlerApps.unavailableNames.size()
                             + ", directHandler=" + (defaultHandlerName.isEmpty() ? "none" : defaultHandlerName)
             );
             entries.add(new SchemeEntry(
                     scheme,
                     join(item.getValue()),
                     installedAppNames,
+                    installedAppPackages,
+                    handlerApps.unavailableNames,
+                    handlerApps.unavailablePackages,
                     defaultHandlerName,
                     directHandler == null ? "" : directHandler.activityInfo.packageName,
                     isAliasEnabled(scheme)
@@ -315,25 +364,66 @@ public final class SchemeManager {
         return new Intent(Intent.ACTION_VIEW, Uri.parse(normalized + "://"));
     }
 
-    /** Returns distinct labels of other installed apps that can handle this scheme. */
+    /** Returns an available/unavailable classification for external Scheme handlers. */
     @NonNull
-    public List<String> findInstalledAppNames(@NonNull String scheme) {
-        List<ResolveInfo> handlers = packageManager.queryIntentActivities(
-                newSchemeIntent(scheme),
+    private HandlerApps findHandlerApps(@NonNull String scheme) {
+        Intent intent = newSchemeIntent(scheme);
+        Map<String, String> availableApps = new LinkedHashMap<>();
+        for (ResolveInfo handler : packageManager.queryIntentActivities(
+                intent,
                 PackageManager.MATCH_DEFAULT_ONLY
-        );
-        Set<String> appNames = new LinkedHashSet<>();
-        for (ResolveInfo handler : handlers) {
+        )) {
+            addExternalHandler(availableApps, handler);
+        }
+
+        Map<String, String> unavailableApps = new LinkedHashMap<>();
+        for (ResolveInfo handler : packageManager.queryIntentActivities(
+                intent,
+                PackageManager.MATCH_DEFAULT_ONLY | PackageManager.MATCH_DISABLED_COMPONENTS
+        )) {
             ActivityInfo activityInfo = handler.activityInfo;
-            if (activityInfo == null || appContext.getPackageName().equals(activityInfo.packageName)) {
+            if (activityInfo == null
+                    || availableApps.containsKey(activityInfo.packageName)
+                    || appContext.getPackageName().equals(activityInfo.packageName)) {
                 continue;
             }
-            appNames.add(getApplicationLabel(activityInfo));
+            unavailableApps.put(activityInfo.packageName, getApplicationLabel(activityInfo));
         }
-        List<String> result = new ArrayList<>(appNames);
-        result.sort(String.CASE_INSENSITIVE_ORDER);
-        Log.d(TAG, "Found " + result.size() + " external handler apps for scheme=" + scheme);
+
+        HandlerApps result = new HandlerApps(
+                sortedValues(availableApps),
+                sortedKeys(availableApps),
+                sortedValues(unavailableApps),
+                sortedKeys(unavailableApps)
+        );
+        Log.d(
+                TAG,
+                "Handler classification for scheme=" + scheme
+                        + ": available=" + result.availableNames.size()
+                        + ", unavailable=" + result.unavailableNames.size()
+        );
         return result;
+    }
+
+    private void addExternalHandler(@NonNull Map<String, String> handlers, @NonNull ResolveInfo handler) {
+        ActivityInfo activityInfo = handler.activityInfo;
+        if (activityInfo != null && !appContext.getPackageName().equals(activityInfo.packageName)) {
+            handlers.put(activityInfo.packageName, getApplicationLabel(activityInfo));
+        }
+    }
+
+    @NonNull
+    private static List<String> sortedKeys(@NonNull Map<String, String> apps) {
+        List<String> keys = new ArrayList<>(apps.keySet());
+        keys.sort(String.CASE_INSENSITIVE_ORDER);
+        return keys;
+    }
+
+    @NonNull
+    private static List<String> sortedValues(@NonNull Map<String, String> apps) {
+        List<String> values = new ArrayList<>(apps.values());
+        values.sort(String.CASE_INSENSITIVE_ORDER);
+        return values;
     }
 
     public boolean isAliasEnabled(@NonNull String scheme) {

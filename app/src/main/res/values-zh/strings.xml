@@ -10,6 +10,8 @@
     <string name="scheme_description_with_apps">%1$s · %2$s</string>
     <string name="scheme_detail_description">描述：%1$s</string>
     <string name="no_installed_apps">没有其他已安装应用</string>
+    <string name="unavailable_apps">不可用</string>
+    <string name="unavailable_apps_detail">不可用：%1$s</string>
     <string name="debug_scheme_hint">要测试的 Scheme</string>
     <string name="debug_scheme">调试</string>
     <string name="debug_scheme_required">请输入要测试的 Scheme</string>

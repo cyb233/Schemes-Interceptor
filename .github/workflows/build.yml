@@ -23,7 +23,38 @@ jobs:
         with:
           gradle-version: '9.7.1'
 
-      - name: Build APKs
+      - name: Restore release keystore
+        id: signing
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [[ -n "$RELEASE_KEYSTORE_BASE64" && -n "$RELEASE_STORE_PASSWORD" && -n "$RELEASE_KEY_ALIAS" && -n "$RELEASE_KEY_PASSWORD" ]]; then
+            printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+            chmod 600 "$RUNNER_TEMP/release.keystore"
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release signing secrets are unavailable; building an unsigned release APK."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build signed APKs
+        if: steps.signing.outputs.available == 'true'
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: >
+          gradle assembleDebug assembleRelease
+          -PreleaseStoreFile=$RUNNER_TEMP/release.keystore
+          -PreleaseStorePassword=$RELEASE_STORE_PASSWORD
+          -PreleaseKeyAlias=$RELEASE_KEY_ALIAS
+          -PreleaseKeyPassword=$RELEASE_KEY_PASSWORD
+
+      - name: Build unsigned APKs
+        if: steps.signing.outputs.available != 'true'
         run: gradle assembleDebug assembleRelease
 
       - name: Set up artifact client

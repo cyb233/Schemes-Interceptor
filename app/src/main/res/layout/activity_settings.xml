@@ -20,7 +20,6 @@
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
     </FrameLayout>
 
-    <include layout="@layout/view_scheme_debug" />
     <include layout="@layout/view_scheme_search" />
 
     <FrameLayout
@@ -42,4 +41,6 @@
             android:layout_gravity="center"
             android:visibility="gone" />
     </FrameLayout>
+
+    <include layout="@layout/view_scheme_debug" />
 </LinearLayout>

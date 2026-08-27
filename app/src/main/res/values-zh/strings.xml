@@ -23,4 +23,11 @@
     <string name="unknown_caller">未知应用</string>
     <string name="enabled">启用 %1$s</string>
     <string name="no_schemes">没有符合条件的 Scheme</string>
+    <string name="check_for_updates">检查更新</string>
+    <string name="checking_for_update">正在检查更新…</string>
+    <string name="already_latest_version">当前已是最新版本</string>
+    <string name="update_check_failed">检查更新失败</string>
+    <string name="update_available_title">发现新版本 %1$s</string>
+    <string name="update_available_message">发现新版本，是否前往下载？\n\n更新说明：\n%1$s</string>
+    <string name="download">下载</string>
 </resources>

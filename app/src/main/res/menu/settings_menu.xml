@@ -7,6 +7,10 @@
         android:title="@string/show_installed_only"
         app:showAsAction="never" />
     <item
+        android:id="@+id/action_check_update"
+        android:title="@string/check_for_updates"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_about"
         android:title="@string/about"
         app:showAsAction="never" />

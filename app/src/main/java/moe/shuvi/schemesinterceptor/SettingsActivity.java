@@ -1,6 +1,10 @@
 package moe.shuvi.schemesinterceptor;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.SpannableString;
 import android.text.TextUtils;
 import android.text.method.LinkMovementMethod;
@@ -27,14 +31,25 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public final class SettingsActivity extends AppCompatActivity {
     private static final String TAG = "SettingsActivity";
+    private static final String LATEST_RELEASE_URL =
+            "https://api.github.com/repos/cyb233/Schemes-Interceptor/releases/latest";
+    private final ExecutorService updateExecutor = Executors.newSingleThreadExecutor();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private SchemeManager schemeManager;
     private SchemeAdapter adapter;
     private final List<SchemeManager.SchemeEntry> allEntries = new ArrayList<>();
@@ -139,6 +154,10 @@ public final class SettingsActivity extends AppCompatActivity {
             Log.i(TAG, "Installed-only filter changed to " + installedOnly);
             item.setChecked(installedOnly);
             applyFilters();
+            return true;
+        }
+        if (id == R.id.action_check_update) {
+            checkForUpdate();
             return true;
         }
         if (id == R.id.action_about) {
@@ -317,6 +336,128 @@ public final class SettingsActivity extends AppCompatActivity {
         return value.toLowerCase(Locale.ROOT).contains(query);
     }
 
+
+    private void checkForUpdate() {
+        Toast.makeText(this, R.string.checking_for_update, Toast.LENGTH_SHORT).show();
+        updateExecutor.execute(() -> {
+            try {
+                ReleaseInfo release = fetchLatestRelease();
+                mainHandler.post(() -> showUpdateResult(release));
+            } catch (IOException | JSONException exception) {
+                Log.e(TAG, "Failed to check for updates", exception);
+                mainHandler.post(() -> Toast.makeText(
+                        this,
+                        R.string.update_check_failed,
+                        Toast.LENGTH_SHORT
+                ).show());
+            }
+        });
+    }
+
+    @NonNull
+    private ReleaseInfo fetchLatestRelease() throws IOException, JSONException {
+        HttpURLConnection connection = (HttpURLConnection) new URL(LATEST_RELEASE_URL).openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Accept", "application/vnd.github+json");
+        connection.setRequestProperty("User-Agent", getPackageName());
+        connection.setConnectTimeout(10_000);
+        connection.setReadTimeout(10_000);
+        try {
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                throw new IOException("GitHub API returned " + connection.getResponseCode());
+            }
+            StringBuilder response = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+            }
+            JSONObject json = new JSONObject(response.toString());
+            return new ReleaseInfo(
+                    json.optString("tag_name"),
+                    json.optString("html_url"),
+                    json.optString("body")
+            );
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    private void showUpdateResult(@NonNull ReleaseInfo release) {
+        if (!isNewerVersion(release.tagName)) {
+            Toast.makeText(this, R.string.already_latest_version, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.update_available_title, release.tagName))
+                .setMessage(getString(R.string.update_available_message, release.releaseNotes))
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.download, (dialog, which) -> {
+                    try {
+                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(release.releaseUrl)));
+                    } catch (Exception exception) {
+                        Log.e(TAG, "Unable to open release page", exception);
+                        Toast.makeText(this, R.string.update_check_failed, Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .show();
+    }
+
+    private boolean isNewerVersion(@NonNull String releaseTag) {
+        String normalizedTag = releaseTag.startsWith("v") || releaseTag.startsWith("V")
+                ? releaseTag.substring(1)
+                : releaseTag;
+        String[] remoteParts = normalizedTag.split("\\.");
+        String[] localParts = getLocalVersionName().split("\\.");
+        try {
+            int length = Math.max(remoteParts.length, localParts.length);
+            for (int index = 0; index < length; index++) {
+                int remote = index < remoteParts.length ? Integer.parseInt(remoteParts[index]) : 0;
+                int local = index < localParts.length ? Integer.parseInt(localParts[index]) : 0;
+                if (remote != local) {
+                    return remote > local;
+                }
+            }
+        } catch (NumberFormatException exception) {
+            Log.w(TAG, "Unable to compare release version: " + releaseTag, exception);
+        }
+        return false;
+    }
+
+    @NonNull
+    private String getLocalVersionName() {
+        try {
+            String versionName = getPackageManager()
+                    .getPackageInfo(getPackageName(), 0)
+                    .versionName;
+            return versionName == null ? "0" : versionName;
+        } catch (android.content.pm.PackageManager.NameNotFoundException exception) {
+            Log.w(TAG, "Unable to read local version", exception);
+            return "0";
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        updateExecutor.shutdownNow();
+        super.onDestroy();
+    }
+
+    private static final class ReleaseInfo {
+        @NonNull
+        final String tagName;
+        @NonNull
+        final String releaseUrl;
+        @NonNull
+        final String releaseNotes;
+
+        ReleaseInfo(@NonNull String tagName, @NonNull String releaseUrl, @NonNull String releaseNotes) {
+            this.tagName = tagName;
+            this.releaseUrl = releaseUrl;
+            this.releaseNotes = releaseNotes;
+        }
+    }
 
     private abstract static class SimpleTextWatcher implements android.text.TextWatcher {
         @Override

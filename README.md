@@ -91,7 +91,7 @@ Scheme 必须符合 URL Scheme 格式：以英文字母开头，后续可使用�
 - Android SDK 37
 - Android Gradle Plugin 9.3.0
 
-使用兼容的 Gradle 9.5.0 安装执行：
+使用兼容的 Gradle 9.7.1 安装执行：
 
 ```bash
 gradle build
@@ -156,7 +156,7 @@ gradle installDebug
 
 1. checkout 源码；
 2. 配置 JDK 17；
-3. 配置 Gradle 9.5.0；
+3. 配置 Gradle 9.7.1；
 4. 执行 `gradle assembleDebug assembleRelease`；
 5. 动态发现每个 APK，并以 APK 文件名创建独立的、未归档 artifact，便于单独下载所需架构与构建类型。
 

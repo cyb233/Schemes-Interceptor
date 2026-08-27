@@ -2,6 +2,7 @@ package moe.shuvi.schemesinterceptor;
 
 import android.content.Context;
 import android.text.SpannableStringBuilder;
+import android.text.TextUtils;
 import android.text.style.StrikethroughSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -85,7 +86,7 @@ public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.View
         holder.title.setText(entry.getDisplayScheme());
         CharSequence subtitle = buildSubtitle(holder.itemView.getContext(), entry);
         holder.subtitle.setText(subtitle);
-        holder.subtitle.setVisibility(subtitle.length() == 0
+        holder.subtitle.setVisibility(TextUtils.isEmpty(subtitle)
                 ? View.GONE
                 : View.VISIBLE);
 
@@ -145,45 +146,38 @@ public final class SchemeAdapter extends RecyclerView.Adapter<SchemeAdapter.View
                             context.getString(R.string.installed_apps, installedApps),
                             entry.getDefaultHandlerName()
                     );
-            return appendUnavailableApps(
-                    text,
-                    entry.getUnavailableAppNames(),
-                    context.getString(R.string.unavailable_apps)
-            );
+            return appendStruckThroughApps(text, entry.getUnavailableAppNames());
         }
         if (!entry.getUnavailableAppNames().isEmpty()) {
-            return appendUnavailableApps(
-                    entry.getDescription(),
-                    entry.getUnavailableAppNames(),
-                    context.getString(R.string.unavailable_apps)
+            return appendStruckThroughApps(
+                    context.getString(R.string.installed_apps, ""),
+                    entry.getUnavailableAppNames()
             );
         }
         return entry.getDescription();
     }
 
     @NonNull
-    private static CharSequence appendUnavailableApps(
+    private static CharSequence appendStruckThroughApps(
             @NonNull String prefix,
-            @NonNull List<String> unavailableApps,
-            @NonNull String unavailableLabel
+            @NonNull List<String> unavailableApps
     ) {
         if (unavailableApps.isEmpty()) {
             return prefix;
         }
         SpannableStringBuilder result = new SpannableStringBuilder(prefix);
-        if (result.length() > 0) {
-            result.append(" · ");
+        if (!prefix.isEmpty() && !prefix.endsWith(" ")) {
+            result.append(" / ");
         }
-        result.append(unavailableLabel).append(": ");
-        int start = result.length();
+        int unavailableAppsStart = result.length();
         result.append(join(unavailableApps));
-        result.setSpan(new StrikethroughSpan(), start, result.length(), 0);
+        result.setSpan(new StrikethroughSpan(), unavailableAppsStart, result.length(), 0);
         return result;
     }
 
     @NonNull
     private static String join(@NonNull List<String> items) {
-        return android.text.TextUtils.join(" / ", items);
+        return TextUtils.join(" / ", items);
     }
 
     public static final class ViewHolder extends RecyclerView.ViewHolder {

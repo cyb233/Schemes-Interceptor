@@ -91,7 +91,7 @@ A Scheme must follow URL Scheme syntax: it starts with an ASCII letter and may b
 - Android SDK 37
 - Android Gradle Plugin 9.3.0
 
-Use a compatible Gradle 9.5.0 installation:
+Use a compatible Gradle 9.7.1 installation:
 
 ```bash
 gradle build
@@ -156,7 +156,7 @@ The workflow at `.github/workflows/build.yml` runs on pushes, pull requests, and
 
 1. Checks out the source code;
 2. Sets up JDK 17;
-3. Sets up Gradle 9.5.0;
+3. Sets up Gradle 9.7.1;
 4. Runs `gradle assembleDebug assembleRelease`;
 5. Discovers each APK dynamically and uploads it as an individual, unarchived artifact named after the APK, so a specific architecture and build type can be downloaded independently.
 

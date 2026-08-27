@@ -2,6 +2,32 @@ plugins {
     id 'com.android.application'
 }
 
+def releaseSigningPropertiesFile = rootProject.file('keystore.properties')
+def releaseSigningProperties = new Properties()
+if (releaseSigningPropertiesFile.canRead()) {
+    releaseSigningPropertiesFile.withInputStream { releaseSigningProperties.load(it) }
+}
+
+def releaseStoreFile = project.findProperty('releaseStoreFile')
+        ?: releaseSigningProperties.getProperty('releaseStoreFile')
+        ?: rootProject.file('release.keystore')
+def releaseStorePassword = project.findProperty('releaseStorePassword')
+        ?: releaseSigningProperties.getProperty('releaseStorePassword')
+def releaseKeyAlias = project.findProperty('releaseKeyAlias')
+        ?: releaseSigningProperties.getProperty('releaseKeyAlias')
+def releaseKeyPassword = project.findProperty('releaseKeyPassword')
+        ?: releaseSigningProperties.getProperty('releaseKeyPassword')
+def hasReleaseSigning = [
+        releaseStoreFile,
+        releaseStorePassword,
+        releaseKeyAlias,
+        releaseKeyPassword
+].every { it != null && !it.toString().isBlank() }
+
+if (!hasReleaseSigning) {
+    logger.lifecycle('Release APKs will be unsigned: release signing credentials were not provided.')
+}
+
 android {
     namespace = 'moe.shuvi.schemesinterceptor'
     compileSdk 37
@@ -10,8 +36,8 @@ android {
         applicationId 'moe.shuvi.schemesinterceptor'
         minSdk 24
         targetSdk 37
-        versionCode 1
-        versionName '1.0'
+        versionCode = (project.findProperty('versionCode') ?: '1').toString().toInteger()
+        versionName = (project.findProperty('versionName') ?: '1.0').toString()
     }
 
     signingConfigs {
@@ -20,6 +46,22 @@ android {
             storePassword '123456'
             keyAlias 'androiddebugkey'
             keyPassword '123456'
+            enableV1Signing = false
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = false
+        }
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+                enableV1Signing = false
+                enableV2Signing = true
+                enableV3Signing = true
+                enableV4Signing = false
+            }
         }
     }
 
@@ -28,6 +70,9 @@ android {
             signingConfig = signingConfigs.debug
         }
         release {
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.release
+            }
             minifyEnabled true
             shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

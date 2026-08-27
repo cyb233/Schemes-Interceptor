@@ -23,4 +23,11 @@
     <string name="unknown_caller">Unknown app</string>
     <string name="enabled">Enable %1$s</string>
     <string name="no_schemes">No matching schemes</string>
+    <string name="check_for_updates">Check for updates</string>
+    <string name="checking_for_update">Checking for updates…</string>
+    <string name="already_latest_version">You are using the latest version</string>
+    <string name="update_check_failed">Unable to check for updates</string>
+    <string name="update_available_title">Version %1$s is available</string>
+    <string name="update_available_message">A new version is available.\n\nRelease notes:\n%1$s</string>
+    <string name="download">Download</string>
 </resources>

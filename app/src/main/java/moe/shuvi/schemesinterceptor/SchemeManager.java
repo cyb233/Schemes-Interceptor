@@ -131,23 +131,12 @@ public final class SchemeManager {
         }
     }
 
-    private static final class HandlerApps {
-        final List<String> availableNames;
-        final List<String> availablePackages;
-        final List<String> unavailableNames;
-        final List<String> unavailablePackages;
-
-        HandlerApps(
-                List<String> availableNames,
-                List<String> availablePackages,
-                List<String> unavailableNames,
-                List<String> unavailablePackages
-        ) {
-            this.availableNames = availableNames;
-            this.availablePackages = availablePackages;
-            this.unavailableNames = unavailableNames;
-            this.unavailablePackages = unavailablePackages;
-        }
+    private record HandlerApps(
+            List<String> availableNames,
+            List<String> availablePackages,
+            List<String> unavailableNames,
+            List<String> unavailablePackages
+    ) {
     }
 
     /**
@@ -356,12 +345,12 @@ public final class SchemeManager {
 
     @NonNull
     private Intent newSchemeIntent(@NonNull String scheme) {
-        String normalized = scheme.trim();
-        int separator = normalized.indexOf(':');
-        if (separator >= 0) {
-            normalized = normalized.substring(0, separator);
-        }
-        return new Intent(Intent.ACTION_VIEW, Uri.parse(normalized + "://"));
+        String trimmedScheme = scheme.trim();
+        int separator = trimmedScheme.indexOf(':');
+        String normalizedScheme = separator >= 0
+                ? trimmedScheme.substring(0, separator)
+                : trimmedScheme;
+        return new Intent(Intent.ACTION_VIEW, Uri.parse(normalizedScheme + "://"));
     }
 
     /** Returns an available/unavailable classification for external Scheme handlers. */
@@ -466,13 +455,23 @@ public final class SchemeManager {
         try (InputStream stream = appContext.getAssets().open(CONFIG_FILE);
              BufferedReader reader = new BufferedReader(
                      new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-            char[] buffer = new char[4096];
-            int count;
-            while ((count = reader.read(buffer)) != -1) {
-                result.append(buffer, 0, count);
-            }
+            char[] characters = new char[4096];
+            readInto(reader, result, characters);
         }
         return result.toString();
+    }
+
+    private static void readInto(
+            @NonNull BufferedReader reader,
+            @NonNull StringBuilder result,
+            @NonNull char[] characters
+    ) throws IOException {
+        int count = reader.read(characters);
+        if (count == -1) {
+            return;
+        }
+        result.append(characters, 0, count);
+        readInto(reader, result, characters);
     }
 
     @NonNull

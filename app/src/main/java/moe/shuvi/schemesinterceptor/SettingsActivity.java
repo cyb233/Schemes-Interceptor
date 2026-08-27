@@ -56,6 +56,7 @@ public final class SettingsActivity extends AppCompatActivity {
     private EditText searchInput;
     private EditText debugSchemeInput;
     private TextView emptyView;
+    private RecyclerView schemeList;
     private boolean installedOnly;
 
     @Override
@@ -105,7 +106,7 @@ public final class SettingsActivity extends AppCompatActivity {
                 this::fillDebugScheme
         );
 
-        RecyclerView schemeList = findViewById(R.id.scheme_list);
+        schemeList = findViewById(R.id.scheme_list);
         schemeList.setLayoutManager(new LinearLayoutManager(this));
         schemeList.setAdapter(adapter);
 
@@ -128,7 +129,14 @@ public final class SettingsActivity extends AppCompatActivity {
         // Package installation/removal and state changes made from Android
         // settings are reflected whenever this screen becomes visible.
         if (schemeManager != null) {
+            RecyclerView.LayoutManager layoutManager = schemeList.getLayoutManager();
+            android.os.Parcelable scrollState = layoutManager == null
+                    ? null
+                    : layoutManager.onSaveInstanceState();
             reloadEntries();
+            if (layoutManager != null && scrollState != null) {
+                schemeList.post(() -> layoutManager.onRestoreInstanceState(scrollState));
+            }
         }
     }
 

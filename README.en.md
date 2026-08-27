@@ -80,7 +80,28 @@ For an object, descriptions are resolved in this order:
 
 Every localized object should provide an `en` value. If no usable description is found, the Scheme entry is still retained with an empty subtitle.
 
-A Scheme must follow URL Scheme syntax: it starts with an ASCII letter and may be followed by letters, digits, `+`, `-`, or `.`.
+A Scheme must follow URL Scheme syntax: it starts with an ASCII letter and may be followed by letters, digits, `+`, `-`, or `.`. [Scheme matching in the Android framework is case-sensitive, unlike the RFC. As a result, always specify schemes using lowercase letters.](https://developer.android.com/guide/topics/manifest/data-element#scheme)
+
+## Contributing Schemes
+
+Contributions that add or correct Scheme entries in [`app/src/main/assets/schemes.json`](app/src/main/assets/schemes.json) are welcome through pull requests.
+
+Before submitting, please follow these guidelines:
+
+1. Add only URL Schemes that are registered by a real Android app and can be verified. State the associated app and verification source in the pull request.
+2. Each object represents one `scheme` and the app it belongs to. Keep separate entries when several apps use the same Scheme so their descriptions can be merged in the UI.
+3. Do not add duplicate `scheme`/`desc` combinations for an app. Prefer updating an existing entry when correcting an app.
+4. Use lowercase Scheme names that satisfy the URL Scheme syntax above, ensuring compatibility with Android framework's case-sensitive matching. Keep `desc` short and recognizable; for localized descriptions, use a locale object and provide an `en` fallback.
+5. Keep the JSON valid and preserve the file's existing formatting. Place new entries near related apps to keep the list maintainable.
+6. Do not include paths, parameters, account details, or other sensitive data from URLs. This file contains only Scheme names and display descriptions.
+
+After modifying the file, run a build to confirm both JSON parsing and automatic Manifest generation succeed:
+
+```bash
+gradle build
+```
+
+In the pull request, summarize the added or changed Schemes, their associated apps, and the validation method or source.
 
 ## Building
 

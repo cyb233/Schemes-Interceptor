@@ -80,7 +80,28 @@
 
 建议每个本地化对象都提供 `en`。如果最终没有可用描述，该项仍会保留，但副标题为空。
 
-Scheme 必须符合 URL Scheme 格式：以英文字母开头，后续可使用字母、数字、`+`、`-` 和 `.`。
+Scheme 必须符合 URL Scheme 格式：以英文字母开头，后续可使用字母、数字、`+`、`-` 和 `.`。[Android 框架中的架构匹配区分大小写，这一点与 RFC 不同。因此，请始终使用小写字母指定架构。](https://developer.android.com/guide/topics/manifest/data-element#scheme)
+
+## 贡献 Scheme
+
+欢迎通过 Pull Request 补充或修正 [`app/src/main/assets/schemes.json`](app/src/main/assets/schemes.json) 中的 Scheme 配置。
+
+提交前请遵循以下约定：
+
+1. 仅添加已经由真实 Android 应用注册并可验证的 URL Scheme；请在 PR 描述中说明对应应用和验证来源。
+2. 每个对象只描述一个 `scheme` 与其所属应用；同一 Scheme 被多个应用使用时，保留多条记录，以便界面合并显示多个描述。
+3. 避免为同一应用重复添加相同的 `scheme` 与 `desc` 组合；更新现有应用时优先修改已有记录。
+4. `scheme` 必须使用小写，并遵守上文的 URL Scheme 格式，以确保与 Android 框架的大小写敏感匹配一致。`desc` 使用简洁、易辨识的应用名称。需要翻译时使用本地化对象，并至少提供 `en` 回退值。
+5. 保持 JSON 格式有效、缩进和现有文件一致；将新条目放在同类应用附近，便于后续维护。
+6. 不要提交 URL 中的路径、参数、账号信息或其他敏感数据；该文件仅保存 Scheme 名称与显示描述。
+
+修改后请至少执行一次构建，确认 Manifest 自动生成和 JSON 解析均正常：
+
+```bash
+gradle build
+```
+
+提交 PR 时请说明新增或修改的 Scheme、对应应用，以及验证方式或来源。
 
 ## 构建
 

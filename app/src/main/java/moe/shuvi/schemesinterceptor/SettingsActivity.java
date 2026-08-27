@@ -65,6 +65,20 @@ public final class SettingsActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate; restoringState=" + (savedInstanceState != null));
         setContentView(R.layout.activity_settings);
 
+        View settingsRoot = findViewById(R.id.settings_root);
+        ViewCompat.setOnApplyWindowInsetsListener(settingsRoot, (view, insets) -> {
+            Insets imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime());
+            Insets navigationBarInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
+            view.setPadding(
+                    view.getPaddingLeft(),
+                    view.getPaddingTop(),
+                    view.getPaddingRight(),
+                    Math.max(imeInsets.bottom, navigationBarInsets.bottom)
+            );
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(settingsRoot);
+
         View appBarContainer = findViewById(R.id.app_bar_container);
         ViewCompat.setOnApplyWindowInsetsListener(appBarContainer, (view, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());

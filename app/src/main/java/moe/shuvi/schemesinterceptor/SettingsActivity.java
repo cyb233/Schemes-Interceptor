@@ -363,25 +363,30 @@ public final class SettingsActivity extends AppCompatActivity {
         connection.setConnectTimeout(10_000);
         connection.setReadTimeout(10_000);
         try {
-            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                throw new IOException("GitHub API returned " + connection.getResponseCode());
-            }
-            StringBuilder response = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-            }
-            JSONObject json = new JSONObject(response.toString());
-            return new ReleaseInfo(
-                    json.optString("tag_name"),
-                    json.optString("html_url"),
-                    json.optString("body")
-            );
+            return parseLatestRelease(connection);
         } finally {
             connection.disconnect();
         }
+    }
+
+    @NonNull
+    private static ReleaseInfo parseLatestRelease(@NonNull HttpURLConnection connection)
+            throws IOException, JSONException {
+        if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+            throw new IOException("GitHub API returned " + connection.getResponseCode());
+        }
+        StringBuilder response = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+            for (String line; (line = reader.readLine()) != null; ) {
+                response.append(line);
+            }
+        }
+        JSONObject json = new JSONObject(response.toString());
+        return new ReleaseInfo(
+                json.optString("tag_name"),
+                json.optString("html_url"),
+                json.optString("body")
+        );
     }
 
     private void showUpdateResult(@NonNull ReleaseInfo release) {
@@ -444,19 +449,11 @@ public final class SettingsActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
-    private static final class ReleaseInfo {
-        @NonNull
-        final String tagName;
-        @NonNull
-        final String releaseUrl;
-        @NonNull
-        final String releaseNotes;
-
-        ReleaseInfo(@NonNull String tagName, @NonNull String releaseUrl, @NonNull String releaseNotes) {
-            this.tagName = tagName;
-            this.releaseUrl = releaseUrl;
-            this.releaseNotes = releaseNotes;
-        }
+    private record ReleaseInfo(
+            @NonNull String tagName,
+            @NonNull String releaseUrl,
+            @NonNull String releaseNotes
+    ) {
     }
 
     private abstract static class SimpleTextWatcher implements android.text.TextWatcher {

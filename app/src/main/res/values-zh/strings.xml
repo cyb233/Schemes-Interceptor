@@ -12,11 +12,13 @@
     <string name="no_installed_apps">没有其他已安装应用</string>
     <string name="unavailable_apps">不可用</string>
     <string name="unavailable_apps_detail">不可用：%1$s</string>
-    <string name="debug_scheme_hint">要测试的 Scheme</string>
+    <string name="debug_scheme_hint">要测试的 Scheme 或完整 URI</string>
     <string name="debug_scheme">调试</string>
     <string name="debug_scheme_required">请输入要测试的 Scheme</string>
     <string name="debug_scheme_invalid">请输入有效的 URL Scheme</string>
-    <string name="debug_scheme_no_handler">没有应用可处理 %1$s://</string>
+    <string name="debug_scheme_no_handler">没有应用可处理此 URI，或处理应用已不可用</string>
+    <string name="debug_file_unsupported">Android 不允许直接向其他应用发送 file://；请使用具有读取授权的 content:// URI</string>
+    <string name="debug_launch_failed">无法启动：系统或目标应用拒绝了此 URI</string>
     <string name="debug_scheme_filled">已将 %1$s 填入调试输入框</string>
     <string name="intercepted_scheme">%1$s 打开了 %2$s://</string>
     <string name="clear_default">清除默认</string>

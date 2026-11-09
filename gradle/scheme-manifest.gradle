@@ -1,5 +1,4 @@
 import groovy.json.JsonSlurper
-import java.util.Locale
 
 /**
  * Builds a manifest from the checked-in template and schemes.json.  Android
@@ -32,9 +31,8 @@ def generateSchemeManifest = tasks.register('generateSchemeManifest') {
             throw new GradleException('schemes.json must contain a JSON array.')
         }
 
-        // A LinkedHashMap retains the first occurrence of each scheme while
-        // a LinkedHashSet removes repeated descriptions before joining them.
-        def grouped = new LinkedHashMap<String, LinkedHashSet<String>>()
+        def schemes = new LinkedHashSet<String>()
+        def examples = new LinkedHashMap<String, String>()
         parsed.eachWithIndex { item, index ->
             if (!(item instanceof Map) || !(item.scheme instanceof String)) {
                 throw new GradleException("schemes.json entry #${index} must have a string scheme.")
@@ -43,17 +41,32 @@ def generateSchemeManifest = tasks.register('generateSchemeManifest') {
             if (!(scheme ==~ /[A-Za-z][A-Za-z0-9+.-]*/)) {
                 throw new GradleException("Invalid URL scheme at entry #${index}: ${scheme}")
             }
-            // Descriptions are resolved at runtime for the device locale.  The
-            // build only validates a provided desc field's supported shapes.
-            if (item.containsKey('desc')
-                    && !(item.desc instanceof String)
-                    && !(item.desc instanceof Map)) {
-                throw new GradleException("schemes.json entry #${index} desc must be a string or object.")
+            if (!(item.desc instanceof Map) || !item.desc.containsKey('en')) {
+                throw new GradleException("schemes.json entry #${index} desc must be a language object with en.")
             }
-            grouped.computeIfAbsent(scheme) { new LinkedHashSet<String>() }
+            item.desc.each { language, description ->
+                if (!(language ==~ /[a-z]{2}(-[A-Z]{2})?/)
+                        || !(description instanceof String) || description.trim().isEmpty()) {
+                    throw new GradleException("schemes.json entry #${index} desc requires language keys like zh or zh-CN and non-empty strings.")
+                }
+            }
+            if (item.containsKey('example')) {
+                if (!(item.example instanceof String) || item.example.trim().isEmpty()) {
+                    throw new GradleException("schemes.json entry #${index} example must be a non-empty URI string.")
+                }
+                def example = item.example.trim()
+                if (!example.startsWith(scheme + ':') || example ==~ /(?s).*\s.*/) {
+                    throw new GradleException("schemes.json entry #${index} example must use scheme ${scheme} and contain no whitespace.")
+                }
+                def previous = examples.putIfAbsent(scheme, example)
+                if (previous != null && previous != example) {
+                    throw new GradleException("Conflicting examples for scheme ${scheme}.")
+                }
+            }
+            schemes.add(scheme)
         }
 
-        def aliases = grouped.keySet().sort { a, b -> a.compareToIgnoreCase(b) }.collect { scheme ->
+        def aliases = schemes.sort { a, b -> a.compareToIgnoreCase(b) }.collect { scheme ->
             def escapedScheme = xmlEscape(scheme)
             """        <activity-alias
             android:name=\".${aliasNameFor(scheme)}\"
@@ -71,7 +84,7 @@ def generateSchemeManifest = tasks.register('generateSchemeManifest') {
 
         // Package visibility is restricted on Android 11+.  Giving each
         // scheme a queries intent lets SchemeManager discover other handlers.
-        def queries = grouped.keySet().sort { a, b -> a.compareToIgnoreCase(b) }.collect { scheme ->
+        def queries = schemes.sort { a, b -> a.compareToIgnoreCase(b) }.collect { scheme ->
             """        <intent>
             <action android:name=\"android.intent.action.VIEW\" />
             <data android:scheme=\"${xmlEscape(scheme)}\" />

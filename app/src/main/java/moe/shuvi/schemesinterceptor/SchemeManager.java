@@ -1,6 +1,7 @@
 package moe.shuvi.schemesinterceptor;
 
 import android.content.ComponentName;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -30,7 +31,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.IntStream;
 
 /** Loads scheme configuration and manages the generated activity aliases. */
 public final class SchemeManager {
@@ -40,6 +40,7 @@ public final class SchemeManager {
 
     private final Context appContext;
     private final PackageManager packageManager;
+    private final Map<String, String> examples = new LinkedHashMap<>();
 
     public SchemeManager(@NonNull Context context) {
         appContext = context.getApplicationContext();
@@ -51,6 +52,7 @@ public final class SchemeManager {
     public static final class SchemeEntry {
         private final String scheme;
         private final String description;
+        private final String example;
         private final List<String> installedAppNames;
         private final List<String> installedAppPackages;
         private final List<String> unavailableAppNames;
@@ -62,6 +64,7 @@ public final class SchemeManager {
         SchemeEntry(
                 String scheme,
                 String description,
+                String example,
                 List<String> installedAppNames,
                 List<String> installedAppPackages,
                 List<String> unavailableAppNames,
@@ -72,6 +75,7 @@ public final class SchemeManager {
         ) {
             this.scheme = scheme;
             this.description = description;
+            this.example = example;
             this.installedAppNames = List.copyOf(installedAppNames);
             this.installedAppPackages = List.copyOf(installedAppPackages);
             this.unavailableAppNames = List.copyOf(unavailableAppNames);
@@ -89,6 +93,11 @@ public final class SchemeManager {
         @NonNull
         public String getDescription() {
             return description;
+        }
+
+        @NonNull
+        public String getExample() {
+            return example;
         }
 
         @NonNull
@@ -141,34 +150,32 @@ public final class SchemeManager {
 
     /**
      * Reads assets/schemes.json, merges duplicate schemes and sorts the output
-     * alphabetically. Invalid or blank scheme records are ignored.
+     * alphabetically. The build validates descriptions and optional examples.
      */
     @NonNull
     public List<SchemeEntry> loadSchemes() throws IOException, JSONException {
         Log.i(TAG, "Loading scheme configuration from assets/" + CONFIG_FILE);
         Map<String, LinkedHashSet<String>> grouped = new LinkedHashMap<>();
         JSONArray source = new JSONArray(readAsset());
+        examples.clear();
         Log.d(TAG, "Parsed " + source.length() + " raw configuration entries");
-        IntStream.range(0, source.length()).forEach(index -> {
-            JSONObject item = source.optJSONObject(index);
-            if (item == null) {
-                Log.w(TAG, "Ignoring non-object configuration entry at index=" + index);
-                return;
+        Locale locale = Locale.getDefault();
+        String language = locale.getLanguage();
+        String region = locale.getCountry();
+        for (int index = 0; index < source.length(); index++) {
+            JSONObject item = source.getJSONObject(index);
+            String scheme = item.getString("scheme").trim();
+            JSONObject translations = item.getJSONObject("desc");
+            String description = region.isEmpty()
+                    ? "" : translations.optString(language + "-" + region);
+            if (description.isEmpty()) description = translations.optString(language);
+            if (description.isEmpty()) description = translations.getString("en");
+            description = description.trim();
+            grouped.computeIfAbsent(scheme, ignored -> new LinkedHashSet<>()).add(description);
+            if (item.has("example")) {
+                examples.putIfAbsent(scheme, item.getString("example").trim());
             }
-            String scheme = item.optString("scheme", "").trim();
-            if (scheme.isEmpty()) {
-                Log.w(TAG, "Ignoring configuration entry with empty scheme at index=" + index);
-                return;
-            }
-            String description = resolveDescription(item.opt("desc"));
-            LinkedHashSet<String> descriptions = grouped.computeIfAbsent(
-                    scheme,
-                    ignored -> new LinkedHashSet<>()
-            );
-            if (!description.isEmpty()) {
-                descriptions.add(description);
-            }
-        });
+        }
 
         List<SchemeEntry> entries = new ArrayList<>();
         for (Map.Entry<String, LinkedHashSet<String>> item : grouped.entrySet()) {
@@ -188,6 +195,7 @@ public final class SchemeManager {
             entries.add(new SchemeEntry(
                     scheme,
                     join(item.getValue()),
+                    examples.getOrDefault(scheme, ""),
                     installedAppNames,
                     installedAppPackages,
                     handlerApps.unavailableNames,
@@ -202,52 +210,6 @@ public final class SchemeManager {
         return entries;
     }
 
-    /**
-     * Resolves a description from either a literal string or a localized object.
-     * Objects first use the full Android locale tag, then language-country
-     * combinations (for example zh-CN), the language code, and finally English.
-     */
-    @NonNull
-    private static String resolveDescription(Object rawDescription) {
-        if (rawDescription instanceof String) {
-            return ((String) rawDescription).trim();
-        }
-        if (!(rawDescription instanceof JSONObject translations)) {
-            return "";
-        }
-        Locale locale = Locale.getDefault();
-        String languageTag = locale.toLanguageTag();
-        String matchingDescription = translations.optString(languageTag, "").trim();
-        if (!matchingDescription.isEmpty()) {
-            return matchingDescription;
-        }
-
-        // Android may report a script-qualified tag (for example zh-Hans-CN),
-        // while the asset uses conventional language-country keys (zh-CN).
-        String language = locale.getLanguage();
-        String country = locale.getCountry();
-        if (!language.isEmpty() && !country.isEmpty()) {
-            String languageCountryDescription = translations.optString(
-                    language + "-" + country,
-                    ""
-            ).trim();
-            if (!languageCountryDescription.isEmpty()) {
-                return languageCountryDescription;
-            }
-        }
-
-        String resourceStyleTag = languageTag.replace('-', '_');
-        String resourceStyleDescription = translations.optString(resourceStyleTag, "").trim();
-        if (!resourceStyleDescription.isEmpty()) {
-            return resourceStyleDescription;
-        }
-        String languageDescription = translations.optString(language, "").trim();
-        if (!languageDescription.isEmpty()) {
-            return languageDescription;
-        }
-        return translations.optString("en", "").trim();
-    }
-
     @NonNull
     private String getHandlerLabel(@Nullable ResolveInfo handler) {
         if (handler == null || handler.activityInfo == null) {
@@ -260,16 +222,6 @@ public final class SchemeManager {
     private String getApplicationLabel(@NonNull ActivityInfo activityInfo) {
         CharSequence label = activityInfo.applicationInfo.loadLabel(packageManager);
         return TextUtils.isEmpty(label) ? activityInfo.packageName : label.toString();
-    }
-
-    /** Returns whether at least one enabled activity can handle a Scheme. */
-    public boolean hasHandler(@NonNull String scheme) {
-        int handlerCount = packageManager.queryIntentActivities(
-                newSchemeIntent(scheme),
-                PackageManager.MATCH_DEFAULT_ONLY
-        ).size();
-        Log.d(TAG, "Handler availability for scheme=" + scheme + ": count=" + handlerCount);
-        return handlerCount > 0;
     }
 
     /**
@@ -306,20 +258,41 @@ public final class SchemeManager {
         return null;
     }
 
-    /** Launches a resolver-visible Scheme intent for debugging. */
-    public void debugLaunchScheme(@NonNull String scheme) {
-        Intent intent = newSchemeIntent(scheme);
-        intent.putExtra(
-                Intent.EXTRA_REFERRER,
-                Uri.parse("android-app://" + appContext.getPackageName())
-        );
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        Log.i(TAG, "Launching debug intent for scheme=" + scheme);
+    public enum DebugResult { LAUNCHED, INVALID_URI, FILE_URI_UNSUPPORTED, NO_HANDLER, FAILED }
+
+    /** Accepts a bare scheme or a complete URI; never bypasses Android's file sharing rules. */
+    @NonNull
+    public DebugResult debugLaunchScheme(@NonNull String input) {
+        String value = input.trim();
+        int separator = value.indexOf(':');
+        String scheme = separator < 0 ? value : value.substring(0, separator);
+        if (!scheme.matches("[A-Za-z][A-Za-z0-9+.-]*") || value.matches("(?s).*\\s.*")) {
+            return DebugResult.INVALID_URI;
+        }
+        if ("file".equalsIgnoreCase(scheme)) {
+            return DebugResult.FILE_URI_UNSUPPORTED;
+        }
+        // Only bare schemes use configured examples. Preserve complete user URIs.
+        if (separator < 0 || value.equals(scheme + ":") || value.equals(scheme + "://")) {
+            value = examples.getOrDefault(scheme, scheme + "://");
+        }
         try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(value));
+            if (packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY).isEmpty()) {
+                return DebugResult.NO_HANDLER;
+            }
+            intent.putExtra(Intent.EXTRA_REFERRER,
+                    Uri.parse("android-app://" + appContext.getPackageName()));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             appContext.startActivity(intent);
-        } catch (android.content.ActivityNotFoundException exception) {
-            Log.w(TAG, "No activity found while launching debug scheme=" + scheme, exception);
-            throw exception;
+            return DebugResult.LAUNCHED;
+        } catch (ActivityNotFoundException exception) {
+            // A handler can disappear between querying and starting it.
+            return DebugResult.NO_HANDLER;
+        } catch (RuntimeException exception) {
+            // Includes permission denials and platform/OEM launch restrictions.
+            Log.w(TAG, "Unable to launch debug scheme=" + scheme, exception);
+            return DebugResult.FAILED;
         }
     }
 

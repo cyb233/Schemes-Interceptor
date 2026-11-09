@@ -12,11 +12,13 @@
     <string name="no_installed_apps">No other installed applications</string>
     <string name="unavailable_apps">Unavailable</string>
     <string name="unavailable_apps_detail">Unavailable: %1$s</string>
-    <string name="debug_scheme_hint">Scheme to test</string>
+    <string name="debug_scheme_hint">Scheme or full URI to test</string>
     <string name="debug_scheme">Debug</string>
     <string name="debug_scheme_required">Enter a Scheme to test</string>
     <string name="debug_scheme_invalid">Enter a valid URL Scheme</string>
-    <string name="debug_scheme_no_handler">No application can handle %1$s://</string>
+    <string name="debug_scheme_no_handler">No application can handle this URI, or the handler is no longer available</string>
+    <string name="debug_file_unsupported">Android blocks sharing file:// URIs with other apps. Use a content:// URI with read access instead.</string>
+    <string name="debug_launch_failed">Unable to launch: the system or target app rejected this URI</string>
     <string name="debug_scheme_filled">Filled %1$s into the debug field</string>
     <string name="intercepted_scheme">%1$s opened %2$s://</string>
     <string name="clear_default">Clear default</string>

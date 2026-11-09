@@ -208,10 +208,11 @@ public final class SettingsActivity extends AppCompatActivity {
 
     private void fillDebugScheme(@NonNull SchemeManager.SchemeEntry entry) {
         Log.d(TAG, "Filling debug field with scheme=" + entry.getScheme());
-        debugSchemeInput.setText(entry.getScheme());
+        String value = entry.getExample().isEmpty() ? entry.getScheme() : entry.getExample();
+        debugSchemeInput.setText(value);
         debugSchemeInput.setSelection(debugSchemeInput.length());
         debugSchemeInput.requestFocus();
-        Toast.makeText(this, getString(R.string.debug_scheme_filled, entry.getDisplayScheme()), Toast.LENGTH_SHORT)
+        Toast.makeText(this, getString(R.string.debug_scheme_filled, value), Toast.LENGTH_SHORT)
                 .show();
     }
 
@@ -265,29 +266,21 @@ public final class SettingsActivity extends AppCompatActivity {
 
     private void debugLaunchScheme(@NonNull String input) {
         String requestedScheme = input.trim();
-        Log.d(TAG, "Debug launch requested with input=" + requestedScheme);
         if (requestedScheme.isEmpty()) {
             Log.w(TAG, "Debug launch rejected: empty Scheme");
             Toast.makeText(this, R.string.debug_scheme_required, Toast.LENGTH_SHORT).show();
             return;
         }
-        int separator = requestedScheme.indexOf(':');
-        String scheme = separator >= 0
-                ? requestedScheme.substring(0, separator)
-                : requestedScheme;
-        if (!scheme.matches("[A-Za-z][A-Za-z0-9+.-]*")) {
-            Log.w(TAG, "Debug launch rejected: invalid Scheme=" + scheme);
-            Toast.makeText(this, R.string.debug_scheme_invalid, Toast.LENGTH_SHORT).show();
-            return;
+        int message = switch (schemeManager.debugLaunchScheme(requestedScheme)) {
+            case LAUNCHED -> 0;
+            case INVALID_URI -> R.string.debug_scheme_invalid;
+            case FILE_URI_UNSUPPORTED -> R.string.debug_file_unsupported;
+            case NO_HANDLER -> R.string.debug_scheme_no_handler;
+            case FAILED -> R.string.debug_launch_failed;
+        };
+        if (message != 0) {
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
         }
-        if (!schemeManager.hasHandler(scheme)) {
-            Log.i(TAG, "Debug launch has no external handler for scheme=" + scheme);
-            Toast.makeText(this, getString(R.string.debug_scheme_no_handler, scheme), Toast.LENGTH_SHORT)
-                    .show();
-            return;
-        }
-        Log.i(TAG, "Starting debug intent for scheme=" + scheme);
-        schemeManager.debugLaunchScheme(scheme);
     }
 
     private void reloadEntries() {

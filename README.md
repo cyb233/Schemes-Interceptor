@@ -18,7 +18,8 @@
 - 按 Scheme 字母顺序排序。
 - 按 Scheme 或描述搜索。
 - 通过 `SwitchCompat` 启用或禁用单个 Scheme alias。
-- 支持“只显示已安装应用”筛选。
+- 默认仅显示有其他可用已安装处理应用的 Scheme，右上“显示全部应用”可切换到完整列表。
+- 右上“跳转记录”自动保存本应用收到的完整 URI，支持搜索、原始/解码显示、复制原始链接、单条删除和清空；也可通过无障碍观察应用窗口切换，窗口切换不是调用链，也不包含其他应用的原始 URI。
 - 支持基础 I18N：界面默认使用英文，中文系统使用中文；`desc` 支持按设备语言选择描述。
 - GitHub Actions 自动构建 APK 并上传构建产物。
 
@@ -28,40 +29,34 @@
 
 `app/src/main/assets/schemes.json`
 
-文件格式为 JSON 数组，每项至少包含 `scheme`。当多个应用使用同一 Scheme 时，应为每个应用分别添加一条配置：
+文件格式为 JSON 数组，每项包含 `scheme` 和 `desc`，可选 `example`。当多个应用使用同一 Scheme 时，应为每个应用分别添加一条配置：
 
 ```json
 [
   {
     "scheme": "mqq",
     "desc": {
-      "zh-CN": "QQ",
+      "zh": "QQ",
       "en": "QQ"
     }
   },
   {
     "scheme": "mqq",
     "desc": {
-      "zh-CN": "TIM",
+      "zh": "TIM",
       "en": "TIM"
     }
   },
   {
     "scheme": "weixin",
-    "desc": "微信"
+    "desc": {"zh": "微信", "en": "WeChat"}
   }
 ]
 ```
 
 ### `desc` 的本地化规则
 
-`desc` 支持字符串或语言映射对象：
-
-```json
-"desc": "固定描述"
-```
-
-字符串会直接使用。也可以使用语言映射：
+`desc` 统一使用语言映射对象。语言键为 `zh`、`en` 等两位小写字母，也可附加大写地区代码（如 `zh-CN`）；必须提供 `en`：
 
 ```json
 "desc": {
@@ -71,14 +66,21 @@
 }
 ```
 
-对象按以下顺序查找：
+按设备的语言及地区优先匹配（如 `zh-CN`），再匹配语言（如 `zh`），最后回退到 `en`。不支持字符串描述或脚本标签。
 
-1. 当前完整语言标签，例如 `zh-CN`；
-2. 下划线形式，例如 `zh_CN`；
-3. 当前语言代码，例如 `zh`；
-4. `en` 作为回退。
+### `example` 调试示例
 
-建议每个本地化对象都提供 `en`。如果最终没有可用描述，该项仍会保留，但副标题为空。
+```json
+{
+  "scheme": "market",
+  "desc": {"zh": "Android 应用市场", "en": "Android App Market"},
+  "example": "market://details?id=moe.shuvi.schemesinterceptor"
+}
+```
+
+长按条目优先将 `example` 填入调试输入框；未配置时填入 Scheme。手动调试裸 Scheme 或空的 `scheme://` 时也优先使用配置示例，否则使用 `scheme://`。完整 URI 不会被替换。
+
+示例必须使用该条目的 Scheme，空白字符应进行 URL 编码。同一 Scheme 的重复条目可以省略示例或使用相同示例，不能配置冲突值。
 
 Scheme 必须符合 URL Scheme 格式：以英文字母开头，后续可使用字母、数字、`+`、`-` 和 `.`。[Android 框架中的架构匹配区分大小写，这一点与 RFC 不同。因此，请始终使用小写字母指定架构。](https://developer.android.com/guide/topics/manifest/data-element#scheme)
 
@@ -91,9 +93,9 @@ Scheme 必须符合 URL Scheme 格式：以英文字母开头，后续可使用�
 1. 仅添加已经由真实 Android 应用注册并可验证的 URL Scheme；请在 PR 描述中说明对应应用和验证来源。
 2. 每个对象只描述一个 `scheme` 与其所属应用；同一 Scheme 被多个应用使用时，保留多条记录，以便界面合并显示多个描述。
 3. 避免为同一应用重复添加相同的 `scheme` 与 `desc` 组合；更新现有应用时优先修改已有记录。
-4. `scheme` 必须使用小写，并遵守上文的 URL Scheme 格式，以确保与 Android 框架的大小写敏感匹配一致。`desc` 使用简洁、易辨识的应用名称。需要翻译时使用本地化对象，并至少提供 `en` 回退值。
+4. `scheme` 必须使用小写，并遵守上文的 URL Scheme 格式。`desc` 必须使用两字母语言键或“语言-地区”键的对象，以简洁、易辨识的应用名称作为值，并提供 `en` 回退值。
 5. 保持 JSON 格式有效、缩进和现有文件一致；将新条目放在同类应用附近，便于后续维护。
-6. 不要提交 URL 中的路径、参数、账号信息或其他敏感数据；该文件仅保存 Scheme 名称与显示描述。
+6. `example` 可包含用于调试的公开路径和参数，不要提交账号、令牌或其他敏感数据。
 
 修改后请至少执行一次构建，确认 Manifest 自动生成和 JSON 解析均正常：
 

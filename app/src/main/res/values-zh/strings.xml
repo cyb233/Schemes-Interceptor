@@ -3,7 +3,7 @@
     <string name="search_hint">搜索 Scheme 或描述</string>
     <string name="show_all_apps">显示全部应用</string>
     <string name="about">关于</string>
-    <string name="about_message">GitHub: https://github.com/cyb233/Schemes-Interceptor</string>
+    <string name="about_message">查看、调试 URL Scheme，并记录本应用收到的完整链接。\n\nGitHub: https://github.com/cyb233/Schemes-Interceptor</string>
     <string name="installed_apps">已安装：%1$s</string>
     <string name="current_handler">当前处理应用：%1$s</string>
     <string name="scheme_details_with_handler">%1$s · 当前处理应用：%2$s</string>

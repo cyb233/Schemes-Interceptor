@@ -18,7 +18,8 @@ An Android application that intercepts multiple URL Schemes based on configurati
 - Sorts entries alphabetically by Scheme.
 - Searches and filters by Scheme or description.
 - Enables or disables an individual Scheme alias with `SwitchCompat`.
-- Provides a “Show installed apps only” filter.
+- Shows schemes with other available installed handlers by default; “Show all apps” reveals the full list.
+- Provides a “Jump records” menu that automatically saves complete URIs received by this app, with search, raw/decoded display, original URI copy, delete and clear actions. Optional accessibility window switch observations do not establish caller relationships or reveal other apps’ original URIs.
 - Includes basic internationalization: English is the default UI language and Simplified Chinese is provided; `desc` supports device-locale selection.
 - Builds the APK automatically with GitHub Actions and uploads the build artifact.
 
@@ -28,40 +29,34 @@ The configuration file is:
 
 `app/src/main/assets/schemes.json`
 
-It contains a JSON array. Each entry must include a `scheme` field. Add a separate entry for each application, even when multiple applications use the same Scheme:
+It contains a JSON array. Each entry requires `scheme` and `desc`, with an optional `example`. Add a separate entry for each application, even when multiple applications use the same Scheme:
 
 ```json
 [
   {
     "scheme": "mqq",
     "desc": {
-      "zh-CN": "QQ",
+      "zh": "QQ",
       "en": "QQ"
     }
   },
   {
     "scheme": "mqq",
     "desc": {
-      "zh-CN": "TIM",
+      "zh": "TIM",
       "en": "TIM"
     }
   },
   {
     "scheme": "weixin",
-    "desc": "WeChat"
+    "desc": {"zh": "微信", "en": "WeChat"}
   }
 ]
 ```
 
 ### Localized `desc` Values
 
-`desc` accepts either a string or a language-to-description object:
-
-```json
-"desc": "A fixed description"
-```
-
-A localized object can be used when different device languages should display different descriptions:
+`desc` must be a language-to-description object. Keys are two lowercase letters such as `zh` and `en`, optionally followed by an uppercase region code such as `zh-CN`; `en` is required:
 
 ```json
 "desc": {
@@ -71,14 +66,21 @@ A localized object can be used when different device languages should display di
 }
 ```
 
-For an object, descriptions are resolved in this order:
+The device language and region are checked first (for example, `zh-CN`), then the language (`zh`), and finally `en`. Literal strings and script tags are not supported.
 
-1. The full current language tag, such as `zh-CN`;
-2. An underscore variant, such as `zh_CN`;
-3. The current language code, such as `zh`;
-4. `en` as the fallback.
+### Debugging with `example`
 
-Every localized object should provide an `en` value. If no usable description is found, the Scheme entry is still retained with an empty subtitle.
+```json
+{
+  "scheme": "market",
+  "desc": {"zh": "Android 应用市场", "en": "Android App Market"},
+  "example": "market://details?id=moe.shuvi.schemesinterceptor"
+}
+```
+
+Long-press an entry to fill its example into the debug field, or its scheme if no example is configured. Debugging a bare scheme or an empty `scheme://` also uses the configured example when available, otherwise `scheme://`. Complete URIs remain unchanged.
+
+Examples must use the entry’s scheme and URL-encode whitespace. Duplicate entries for a scheme may omit the example or share the same example; conflicting values are rejected during the build.
 
 A Scheme must follow URL Scheme syntax: it starts with an ASCII letter and may be followed by letters, digits, `+`, `-`, or `.`. [Scheme matching in the Android framework is case-sensitive, unlike the RFC. As a result, always specify schemes using lowercase letters.](https://developer.android.com/guide/topics/manifest/data-element#scheme)
 
@@ -91,9 +93,9 @@ Before submitting, please follow these guidelines:
 1. Add only URL Schemes that are registered by a real Android app and can be verified. State the associated app and verification source in the pull request.
 2. Each object represents one `scheme` and the app it belongs to. Keep separate entries when several apps use the same Scheme so their descriptions can be merged in the UI.
 3. Do not add duplicate `scheme`/`desc` combinations for an app. Prefer updating an existing entry when correcting an app.
-4. Use lowercase Scheme names that satisfy the URL Scheme syntax above, ensuring compatibility with Android framework's case-sensitive matching. Keep `desc` short and recognizable; for localized descriptions, use a locale object and provide an `en` fallback.
+4. Use lowercase Scheme names that satisfy the URL Scheme syntax above. `desc` must use two-letter language keys or language-region keys and short, recognizable app names, with an `en` fallback.
 5. Keep the JSON valid and preserve the file's existing formatting. Place new entries near related apps to keep the list maintainable.
-6. Do not include paths, parameters, account details, or other sensitive data from URLs. This file contains only Scheme names and display descriptions.
+6. `example` may contain public debugging paths and parameters. Do not include account details, tokens or other sensitive data.
 
 After modifying the file, run a build to confirm both JSON parsing and automatic Manifest generation succeed:
 

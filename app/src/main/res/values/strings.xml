@@ -3,7 +3,7 @@
     <string name="search_hint">Search schemes or descriptions</string>
     <string name="show_all_apps">Show all apps</string>
     <string name="about">About</string>
-    <string name="about_message">GitHub: https://github.com/cyb233/Schemes-Interceptor</string>
+    <string name="about_message">Inspect and debug URL schemes, and record complete links received by this app.\n\nGitHub: https://github.com/cyb233/Schemes-Interceptor</string>
     <string name="installed_apps">Installed: %1$s</string>
     <string name="current_handler">Current handler: %1$s</string>
     <string name="scheme_details_with_handler">%1$s · Current handler: %2$s</string>

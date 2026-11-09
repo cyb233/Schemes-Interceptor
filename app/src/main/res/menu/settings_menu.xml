@@ -7,6 +7,10 @@
         android:title="@string/show_all_apps"
         app:showAsAction="never" />
     <item
+        android:id="@+id/action_jump_records"
+        android:title="@string/jump_records"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_check_update"
         android:title="@string/check_for_updates"
         app:showAsAction="never" />

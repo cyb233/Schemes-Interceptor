@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/record_decode_switch"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:paddingHorizontal="16dp"
+        android:text="@string/show_decoded_uri" />
+
+    <ScrollView
+        android:id="@+id/record_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true">
+
+        <TextView
+            android:id="@+id/record_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+            android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+            android:textIsSelectable="true" />
+    </ScrollView>
+</LinearLayout>

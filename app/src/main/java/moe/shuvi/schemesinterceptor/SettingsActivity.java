@@ -175,6 +175,10 @@ public final class SettingsActivity extends AppCompatActivity {
             applyFilters();
             return true;
         }
+        if (id == R.id.action_jump_records) {
+            startActivity(new Intent(this, JumpRecordsActivity.class));
+            return true;
+        }
         if (id == R.id.action_check_update) {
             checkForUpdate();
             return true;

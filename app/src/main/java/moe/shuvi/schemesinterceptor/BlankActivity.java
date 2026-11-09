@@ -21,7 +21,6 @@ public final class BlankActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate: action=" + getIntent().getAction()
                 + ", scheme=" + getIntent().getScheme());
         showInterceptedIntent(getIntent());
-        finish();
     }
 
     @Override
@@ -31,7 +30,6 @@ public final class BlankActivity extends AppCompatActivity {
                 + ", scheme=" + intent.getScheme());
         setIntent(intent);
         showInterceptedIntent(intent);
-        finish();
     }
 
     @NonNull
@@ -67,10 +65,14 @@ public final class BlankActivity extends AppCompatActivity {
     }
     private void showInterceptedIntent(@Nullable Intent intent) {
         if (intent == null || intent.getData() == null) {
+            finish();
             return;
         }
         Uri uri = intent.getData();
-        String caller = resolveAppLabel(findCallerPackage(intent));
+        String callerPackage = findCallerPackage(intent);
+        JumpRecordStore.get(this).recordIntercepted(
+                callerPackage, getPackageName(), uri.toString(), this::finish);
+        String caller = resolveAppLabel(callerPackage);
         if (caller.isEmpty()) {
             caller = getString(R.string.unknown_caller);
             Log.d(TAG, "Intercepted scheme without an attributable caller: " + uri.getScheme());

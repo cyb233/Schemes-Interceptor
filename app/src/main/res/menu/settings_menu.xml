@@ -2,9 +2,9 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/action_installed_only"
+        android:id="@+id/action_show_all_apps"
         android:checkable="true"
-        android:title="@string/show_installed_only"
+        android:title="@string/show_all_apps"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_check_update"

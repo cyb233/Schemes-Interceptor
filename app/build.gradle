@@ -32,6 +32,10 @@ android {
     namespace = 'moe.shuvi.schemesinterceptor'
     compileSdk 37
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId 'moe.shuvi.schemesinterceptor'
         minSdk 24
@@ -68,6 +72,7 @@ android {
     buildTypes {
         debug {
             signingConfig = signingConfigs.debug
+            applicationIdSuffix '.debug'
         }
         release {
             if (hasReleaseSigning) {
@@ -78,6 +83,11 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    defaultConfig.buildConfigField 'String', 'RELEASE_APPLICATION_ID',
+            "\"${defaultConfig.applicationId}${buildTypes.release.applicationIdSuffix ?: ''}\""
+    defaultConfig.buildConfigField 'String', 'DEBUG_APPLICATION_ID',
+            "\"${defaultConfig.applicationId}${buildTypes.debug.applicationIdSuffix ?: ''}\""
 
     splits {
         abi {

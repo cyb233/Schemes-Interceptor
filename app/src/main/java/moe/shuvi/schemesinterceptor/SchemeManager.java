@@ -282,7 +282,8 @@ public final class SchemeManager {
                 newSchemeIntent(scheme),
                 PackageManager.MATCH_DEFAULT_ONLY
         );
-        if (resolved == null || resolved.activityInfo == null) {
+        if (resolved == null || resolved.activityInfo == null
+                || isOwnPackage(resolved.activityInfo.packageName)) {
             Log.d(TAG, "No resolved activity for scheme=" + scheme);
             return null;
         }
@@ -373,7 +374,7 @@ public final class SchemeManager {
             ActivityInfo activityInfo = handler.activityInfo;
             if (activityInfo == null
                     || availableApps.containsKey(activityInfo.packageName)
-                    || appContext.getPackageName().equals(activityInfo.packageName)) {
+                    || isOwnPackage(activityInfo.packageName)) {
                 continue;
             }
             unavailableApps.put(activityInfo.packageName, getApplicationLabel(activityInfo));
@@ -396,9 +397,16 @@ public final class SchemeManager {
 
     private void addExternalHandler(@NonNull Map<String, String> handlers, @NonNull ResolveInfo handler) {
         ActivityInfo activityInfo = handler.activityInfo;
-        if (activityInfo != null && !appContext.getPackageName().equals(activityInfo.packageName)) {
+        if (activityInfo != null && !isOwnPackage(activityInfo.packageName)) {
             handlers.put(activityInfo.packageName, getApplicationLabel(activityInfo));
         }
+    }
+
+    /** Both builds register the same schemes and must not count as external handlers. */
+    private boolean isOwnPackage(@NonNull String packageName) {
+        return appContext.getPackageName().equals(packageName)
+                || BuildConfig.RELEASE_APPLICATION_ID.equals(packageName)
+                || BuildConfig.DEBUG_APPLICATION_ID.equals(packageName);
     }
 
     @NonNull

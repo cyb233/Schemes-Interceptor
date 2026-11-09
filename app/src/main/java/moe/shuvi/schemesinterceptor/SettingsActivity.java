@@ -57,7 +57,7 @@ public final class SettingsActivity extends AppCompatActivity {
     private EditText debugSchemeInput;
     private TextView emptyView;
     private RecyclerView schemeList;
-    private boolean installedOnly;
+    private boolean showAllApps;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -131,8 +131,7 @@ public final class SettingsActivity extends AppCompatActivity {
             }
         });
 
-        installedOnly = savedInstanceState != null && savedInstanceState.getBoolean("installedOnly", false);
-        Log.d(TAG, "Initial installedOnly=" + installedOnly);
+        showAllApps = savedInstanceState != null && savedInstanceState.getBoolean("showAllApps", false);
         reloadEntries();
     }
 
@@ -157,24 +156,22 @@ public final class SettingsActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.settings_menu, menu);
-        MenuItem installedItem = menu.findItem(R.id.action_installed_only);
-        installedItem.setChecked(installedOnly);
+        menu.findItem(R.id.action_show_all_apps).setChecked(showAllApps);
         return true;
     }
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        menu.findItem(R.id.action_installed_only).setChecked(installedOnly);
+        menu.findItem(R.id.action_show_all_apps).setChecked(showAllApps);
         return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_installed_only) {
-            installedOnly = !installedOnly;
-            Log.i(TAG, "Installed-only filter changed to " + installedOnly);
-            item.setChecked(installedOnly);
+        if (id == R.id.action_show_all_apps) {
+            showAllApps = !showAllApps;
+            item.setChecked(showAllApps);
             applyFilters();
             return true;
         }
@@ -206,7 +203,7 @@ public final class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putBoolean("installedOnly", installedOnly);
+        outState.putBoolean("showAllApps", showAllApps);
     }
 
     private void fillDebugScheme(@NonNull SchemeManager.SchemeEntry entry) {
@@ -315,7 +312,7 @@ public final class SettingsActivity extends AppCompatActivity {
                 : searchInput.getText().toString().trim().toLowerCase(Locale.ROOT);
         List<SchemeManager.SchemeEntry> filtered = new ArrayList<>();
         for (SchemeManager.SchemeEntry entry : allEntries) {
-            if (installedOnly && entry.getInstalledAppNames().isEmpty()) {
+            if (!showAllApps && entry.getInstalledAppNames().isEmpty()) {
                 continue;
             }
             if (!query.isEmpty() && !matchesQuery(entry, query)) {
@@ -327,7 +324,7 @@ public final class SettingsActivity extends AppCompatActivity {
         Log.d(
                 TAG,
                 "Applied filters: query=" + (query.isEmpty() ? "<empty>" : query)
-                        + ", installedOnly=" + installedOnly
+                        + ", showAllApps=" + showAllApps
                         + ", displayed=" + filtered.size() + "/" + allEntries.size()
         );
         emptyView.setText(R.string.no_schemes);
